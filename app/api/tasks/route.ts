@@ -1,0 +1,7 @@
+import { desc, eq, like, or } from "drizzle-orm";
+import { getDb } from "@/db";
+import { auditLogs, tasks } from "@/db/schema";
+import { requireRole } from "@/lib/authz";
+import { taskInput } from "@/lib/validation";
+export async function GET(request: Request) { const auth = await requireRole(["admin","editor","viewer"]); if ("error" in auth) return auth.error; const q = new URL(request.url).searchParams.get("q")?.trim(); const db = getDb(); return Response.json(await db.select().from(tasks).where(q ? or(like(tasks.taskId, `%${q}%`), like(tasks.title, `%${q}%`), like(tasks.service, `%${q}%`)) : undefined).orderBy(desc(tasks.updatedAt)).limit(500)); }
+export async function POST(request: Request) { const auth = await requireRole(["admin","editor"]); if ("error" in auth) return auth.error; const parsed = taskInput.safeParse(await request.json()); if (!parsed.success) return Response.json({error:"Invalid task",issues:parsed.error.flatten()}, {status:400}); const db=getDb(), now=new Date().toISOString(); try { const [created]=await db.insert(tasks).values({...parsed.data,revision:1,createdAt:now,updatedAt:now,updatedBy:auth.principal.identity.email}).returning(); await db.insert(auditLogs).values({actorId:auth.principal.identity.userId,actorEmail:auth.principal.identity.email,action:"create",entityType:"task",entityId:created.taskId,afterJson:JSON.stringify(created),createdAt:now}); return Response.json(created,{status:201}); } catch { return Response.json({error:"Task ID already exists"},{status:409}); } }

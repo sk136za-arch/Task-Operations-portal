@@ -1,0 +1,7 @@
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { getDb } from "@/db";
+import { auditLogs, deployments, tasks } from "@/db/schema";
+import { requireRole } from "@/lib/authz";
+const input=z.object({sprint:z.string().max(40).default(""),environment:z.string().min(1),type:z.enum(["uat","prod"]),plannedDate:z.string().nullable().optional(),actualDate:z.string().nullable().optional(),dateLabel:z.string().max(100).default(""),detail:z.string().min(1).max(5000),result:z.string().max(80).default("planned")});
+export async function POST(request:Request,{params}:{params:Promise<{taskId:string}>}) { const auth=await requireRole(["admin","editor"]); if("error" in auth)return auth.error; const {taskId}=await params,parsed=input.safeParse(await request.json()); if(!parsed.success)return Response.json({error:"Invalid deployment",issues:parsed.error.flatten()},{status:400}); const db=getDb(),[task]=await db.select().from(tasks).where(eq(tasks.taskId,taskId)).limit(1); if(!task)return Response.json({error:"Task not found"},{status:404}); const now=new Date().toISOString(),[created]=await db.insert(deployments).values({...parsed.data,taskId,createdAt:now,updatedAt:now}).returning(); await db.insert(auditLogs).values({actorId:auth.principal.identity.userId,actorEmail:auth.principal.identity.email,action:"create",entityType:"deployment",entityId:String(created.id),afterJson:JSON.stringify(created),createdAt:now}); return Response.json(created,{status:201}); }
