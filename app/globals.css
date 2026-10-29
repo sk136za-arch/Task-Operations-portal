@@ -182,3 +182,12 @@ body{background:var(--ui-canvas);color:var(--ui-navy);font-family:"Avenir Next",
 @media(max-width:1888px){.app-shell{margin:0;min-height:100vh}.side{inset:0 auto 0 0;height:100vh}}
 @media(max-width:1050px){.grid-2{border:0;gap:16px}.grid-2 .panel{border:1px solid var(--ui-line)}.grid-2 .panel+ .panel{border-left:1px solid var(--ui-line)}}
 @media(max-width:760px){body{background:#fff}.app-shell{min-height:100vh}.side{position:static;inset:auto;width:auto;height:72px;padding:12px 18px;display:flex;flex-direction:row;align-items:center;background:#f4f5f9;border-right:0;border-bottom:1px solid var(--ui-line)}.brand{padding:0}.brand>span{width:38px;height:38px}.side nav{display:flex;margin-left:auto}.side nav button{padding:10px}.main{margin:0;padding:24px 16px 60px}.main>header{margin:-24px -16px 28px;padding:18px 16px}.kpis{border:0;gap:10px;background:transparent}.kpi{border:1px solid var(--ui-line);border-radius:6px}}
+
+/* Task sorting and timeline environment controls */
+.sort-heading{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:inherit;padding:0;font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer}
+.sort-heading span{font-size:9px;color:#a3abba}
+.sort-heading.active,.sort-heading.active span{color:#5364ce}
+.timeline-controls{grid-template-columns:minmax(260px,1fr) 170px 170px 170px}
+.timeline-controls select{height:42px;border:1px solid #dfe4ec;border-radius:5px;background:#fafbfc;color:#4d4162;padding:0 12px}
+@media(max-width:1100px){.timeline-controls{grid-template-columns:1fr 1fr}.timeline-controls>div{grid-column:1/-1}}
+@media(max-width:560px){.timeline-controls{grid-template-columns:1fr}}
