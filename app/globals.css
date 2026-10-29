@@ -193,3 +193,15 @@ body{background:var(--ui-canvas);color:var(--ui-navy);font-family:"Avenir Next",
 @media(max-width:1200px){.filters{grid-template-columns:1fr 1fr 1fr}.timeline-controls{grid-template-columns:1fr 1fr}.timeline-controls>div{grid-column:1/-1}}
 @media(max-width:760px){.filters{grid-template-columns:1fr}}
 @media(max-width:560px){.timeline-controls{grid-template-columns:1fr}}
+
+/* Destructive and access-management actions */
+.user-list>div{grid-template-columns:auto minmax(180px,1fr) auto auto}
+.access-actions,.plan-actions{display:flex!important;align-items:center;gap:7px}
+.access-actions button,.plan-actions button{display:inline-flex;align-items:center;gap:5px;border:1px solid #dce0ee;background:#fff;color:#5869d8;border-radius:4px;padding:7px 9px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
+.access-actions button:hover,.plan-actions button:hover{background:#eef0ff}
+.access-actions button.danger,.plan-actions .delete-plan{border-color:#f0d6d9;color:#b34b57}
+.access-actions button.danger:hover,.plan-actions .delete-plan:hover{background:#fff1f2}
+.access-actions svg,.plan-actions svg{width:13px;height:13px}
+.plan-actions{margin-left:auto}
+.plan-actions .edit-plan{margin-left:0}
+@media(max-width:760px){.user-list>div{grid-template-columns:auto 1fr auto}.access-actions{grid-column:2/-1;justify-content:flex-start}}
