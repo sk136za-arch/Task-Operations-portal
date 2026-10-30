@@ -205,3 +205,15 @@ body{background:var(--ui-canvas);color:var(--ui-navy);font-family:"Avenir Next",
 .plan-actions{margin-left:auto}
 .plan-actions .edit-plan{margin-left:0}
 @media(max-width:760px){.user-list>div{grid-template-columns:auto 1fr auto}.access-actions{grid-column:2/-1;justify-content:flex-start}}
+
+/* Upcoming deployment urgency levels */
+.timeline button:is(.due-3,.due-7,.due-11){margin:4px -10px;padding:14px 10px;border:1px solid;border-radius:8px;box-shadow:none}
+.timeline button.due-3{border-color:#efc2c8;background:#fff0f2}
+.timeline button.due-3 .date i{background:#f8d7dc;color:#9f3442}
+.timeline button.due-3 .dot{background:#d85a67;box-shadow:0 0 0 4px #f9dce0}
+.timeline button.due-7{border-color:#ead39d;background:#fff9e8}
+.timeline button.due-7 .date i{background:#f8e7b9;color:#80601f}
+.timeline button.due-7 .dot{background:#d7a33d;box-shadow:0 0 0 4px #f8eac7}
+.timeline button.due-11{border-color:#dfe3e9;background:#f5f6f8}
+.timeline button.due-11 .date i{background:#e5e8ed;color:#5f6877}
+.timeline button.due-11 .dot{background:#929aa7;box-shadow:0 0 0 4px #e4e7eb}
