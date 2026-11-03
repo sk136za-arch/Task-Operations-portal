@@ -33,6 +33,7 @@ import {
   dueThresholdsFrom,
   isDone,
   taskDeployPlan,
+  timelineDefaultRange,
   tone,
 } from "./utils";
 
@@ -70,8 +71,9 @@ export default function Dashboard({
   const [userForm, setUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [busy, setBusy] = useState(false);
-  const [startDate, setStartDate] = useState("2026-10-01");
-  const [endDate, setEndDate] = useState("2026-12-15");
+  const [timelineRange] = useState(timelineDefaultRange);
+  const [startDate, setStartDate] = useState(timelineRange.startDate);
+  const [endDate, setEndDate] = useState(timelineRange.endDate);
   const [timelineEnvironment, setTimelineEnvironment] = useState("all");
   const years = useMemo(
     () =>

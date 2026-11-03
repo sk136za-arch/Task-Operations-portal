@@ -77,6 +77,16 @@ export const dateInputValue = (date: Date | null) =>
   date
     ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
     : "";
+
+export const timelineDefaultRange = (now = new Date()) => {
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const nextMonth = start.getMonth() + 1;
+  const endYear = start.getFullYear() + Math.floor(nextMonth / 12);
+  const endMonth = nextMonth % 12;
+  const lastDay = new Date(endYear, endMonth + 1, 0).getDate();
+  const end = new Date(endYear, endMonth, Math.min(start.getDate(), lastDay));
+  return { startDate: dateInputValue(start), endDate: dateInputValue(end) };
+};
 export const isDone = (task: Task) =>
   /deploy prod done|cancel/i.test(task.status);
 

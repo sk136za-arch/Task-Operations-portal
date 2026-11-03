@@ -2547,3 +2547,12 @@ tbody tr:hover {
     margin-left: 0;
   }
 }
+
+.gantt-tooltip.gantt-tooltip-portal {
+  display: grid;
+  gap: 5px;
+  position: fixed;
+  z-index: 2147483647;
+  bottom: auto;
+  transform: translate(-50%, -100%);
+}

@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { createPortal } from "react-dom";
 import type { Deployment, Task } from "./types";
 import { taskDeployPlan } from "./utils";
 
@@ -36,6 +38,15 @@ function inferredTaskStart(task: Task | undefined, end: Date) {
     );
   return result;
 }
+
+type TooltipDetails = {
+  task: Task;
+  deployment?: Deployment;
+  begin: Date;
+  finish: Date;
+  x: number;
+  y: number;
+};
 export function TimelineBoard({
   deployments,
   tasks,
@@ -57,6 +68,7 @@ export function TimelineBoard({
   setEnvironment: (v: string) => void;
   onPick: (t: Task) => void;
 }) {
+  const [tooltip, setTooltip] = useState<TooltipDetails | null>(null);
   const start = new Date(`${startDate}T00:00:00`),
     end = new Date(`${endDate}T00:00:00`);
   const valid =
@@ -220,26 +232,43 @@ export function TimelineBoard({
                         gridColumn: `${startIndex + 1} / ${endIndex + 2}`,
                       }}
                       onClick={() => onPick(task)}
+                      onMouseEnter={(event) => {
+                        const rect =
+                          event.currentTarget.getBoundingClientRect();
+                        setTooltip({
+                          task,
+                          deployment: d,
+                          begin,
+                          finish,
+                          x: Math.min(
+                            Math.max(rect.left + rect.width / 2, 148),
+                            window.innerWidth - 148,
+                          ),
+                          y: Math.max(12, rect.top - 10),
+                        });
+                      }}
+                      onMouseLeave={() => setTooltip(null)}
+                      onFocus={(event) => {
+                        const rect =
+                          event.currentTarget.getBoundingClientRect();
+                        setTooltip({
+                          task,
+                          deployment: d,
+                          begin,
+                          finish,
+                          x: Math.min(
+                            Math.max(rect.left + rect.width / 2, 148),
+                            window.innerWidth - 148,
+                          ),
+                          y: Math.max(12, rect.top - 10),
+                        });
+                      }}
+                      onBlur={() => setTooltip(null)}
                       aria-label={`${task.taskId} ${task.title}`}
                     >
                       <span>
                         {task.taskId} · {d?.sprint || task.status}
                       </span>
-                      <i className="gantt-tooltip">
-                        <b>
-                          {task.taskId} · {task.title}
-                        </b>
-                        <small>
-                          {task.team} · {task.environment}
-                        </small>
-                        <small>
-                          {begin.toLocaleDateString("en-GB")} →{" "}
-                          {finish.toLocaleDateString("en-GB")}
-                        </small>
-                        <small>
-                          {d?.detail || task.remark || "Task period"}
-                        </small>
-                      </i>
                     </button>
                   </div>
                 </div>
@@ -253,6 +282,31 @@ export function TimelineBoard({
           )}
         </div>
       )}
+      {tooltip &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <i
+            className="gantt-tooltip gantt-tooltip-portal"
+            style={{ left: tooltip.x, top: tooltip.y }}
+          >
+            <b>
+              {tooltip.task.taskId} · {tooltip.task.title}
+            </b>
+            <small>
+              {tooltip.task.team} · {tooltip.task.environment}
+            </small>
+            <small>
+              {tooltip.begin.toLocaleDateString("en-GB")} →{" "}
+              {tooltip.finish.toLocaleDateString("en-GB")}
+            </small>
+            <small>
+              {tooltip.deployment?.detail ||
+                tooltip.task.remark ||
+                "Task period"}
+            </small>
+          </i>,
+          document.body,
+        )}
     </section>
   );
 }
