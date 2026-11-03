@@ -73,6 +73,19 @@ export const taskDeployPlan = (taskId: string, deployments: Deployment[]) => {
   return plans.find((item) => item.date >= today) ?? plans.at(-1) ?? null;
 };
 
+export const latestTaskDeployment = (
+  taskId: string,
+  deployments: Deployment[],
+) =>
+  deployments
+    .filter((deployment) => deployment.taskId === taskId)
+    .map((deployment) => ({ deployment, date: deployPlanDate(deployment) }))
+    .sort(
+      (left, right) =>
+        (left.date?.getTime() ?? 0) - (right.date?.getTime() ?? 0),
+    )
+    .at(-1)?.deployment ?? null;
+
 export const dateInputValue = (date: Date | null) =>
   date
     ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
