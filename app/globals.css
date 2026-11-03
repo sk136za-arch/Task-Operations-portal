@@ -235,6 +235,7 @@ body{background:var(--ui-canvas);color:var(--ui-navy);font-family:"Avenir Next",
 .timeline .upcoming-entry:first-child{border-top:0}
 .timeline .upcoming-open{display:grid;grid-template-columns:145px 12px minmax(0,1fr) 20px;gap:14px;align-items:center;width:100%;padding:0;border:0;background:transparent;text-align:left;cursor:pointer}
 .timeline .upcoming-open:hover{background:transparent}
+.timeline .upcoming-open>span:nth-child(3)>small{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.45}
 .timeline .upcoming-status{width:100%;max-width:170px;justify-self:end}
 .timeline .upcoming-entry:is(.due-3,.due-7,.due-11){margin:4px -10px;padding:14px 10px;border:1px solid;border-radius:8px}
 .timeline .upcoming-entry.due-3{border-color:#efc2c8;background:#fff0f2}
