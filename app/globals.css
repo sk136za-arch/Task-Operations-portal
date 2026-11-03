@@ -217,3 +217,15 @@ body{background:var(--ui-canvas);color:var(--ui-navy);font-family:"Avenir Next",
 .timeline button.due-11{border-color:#dfe3e9;background:#f5f6f8}
 .timeline button.due-11 .date i{background:#e5e8ed;color:#5f6877}
 .timeline button.due-11 .dot{background:#929aa7;box-shadow:0 0 0 4px #e4e7eb}
+
+/* Configurable urgency thresholds */
+.config-stack{display:grid;gap:18px}
+.due-config{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr)) auto;gap:12px;align-items:end}
+.due-config label{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;color:#657086;font-size:11px;font-weight:700}
+.due-config input{grid-column:1/-1;height:42px;border:1px solid #dfe4ec;border-radius:5px;background:#fafbfc;color:#445269;padding:0 12px}
+.due-config small{font-weight:500;color:#929aaa}
+.due-swatch{width:11px;height:11px;border-radius:50%}
+.due-swatch.red{background:#d85a67}.due-swatch.yellow{background:#d7a33d}.due-swatch.gray{background:#929aa7}
+.config-hint{margin:13px 0 0;color:#8b94a5;font-size:11px}
+@media(max-width:900px){.due-config{grid-template-columns:1fr 1fr}.due-config button{grid-column:1/-1}}
+@media(max-width:560px){.due-config{grid-template-columns:1fr}}
