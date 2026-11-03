@@ -229,3 +229,22 @@ body{background:var(--ui-canvas);color:var(--ui-navy);font-family:"Avenir Next",
 .config-hint{margin:13px 0 0;color:#8b94a5;font-size:11px}
 @media(max-width:900px){.due-config{grid-template-columns:1fr 1fr}.due-config button{grid-column:1/-1}}
 @media(max-width:560px){.due-config{grid-template-columns:1fr}}
+
+/* Editable task status in upcoming deployments */
+.timeline .upcoming-entry{display:grid;grid-template-columns:minmax(0,1fr) 170px;align-items:center;gap:16px;border-top:1px solid #edf0f5;padding:14px 10px}
+.timeline .upcoming-entry:first-child{border-top:0}
+.timeline .upcoming-open{display:grid;grid-template-columns:145px 12px minmax(0,1fr) 20px;gap:14px;align-items:center;width:100%;padding:0;border:0;background:transparent;text-align:left;cursor:pointer}
+.timeline .upcoming-open:hover{background:transparent}
+.timeline .upcoming-status{width:100%;max-width:170px;justify-self:end}
+.timeline .upcoming-entry:is(.due-3,.due-7,.due-11){margin:4px -10px;padding:14px 10px;border:1px solid;border-radius:8px}
+.timeline .upcoming-entry.due-3{border-color:#efc2c8;background:#fff0f2}
+.timeline .upcoming-entry.due-3 .date i{background:#f8d7dc;color:#9f3442}
+.timeline .upcoming-entry.due-3 .dot{background:#d85a67;box-shadow:0 0 0 4px #f9dce0}
+.timeline .upcoming-entry.due-7{border-color:#ead39d;background:#fff9e8}
+.timeline .upcoming-entry.due-7 .date i{background:#f8e7b9;color:#80601f}
+.timeline .upcoming-entry.due-7 .dot{background:#d7a33d;box-shadow:0 0 0 4px #f8eac7}
+.timeline .upcoming-entry.due-11{border-color:#dfe3e9;background:#f5f6f8}
+.timeline .upcoming-entry.due-11 .date i{background:#e5e8ed;color:#5f6877}
+.timeline .upcoming-entry.due-11 .dot{background:#929aa7;box-shadow:0 0 0 4px #e4e7eb}
+@media(max-width:760px){.timeline .upcoming-entry{grid-template-columns:1fr}.timeline .upcoming-status,.timeline .upcoming-entry>.badge{justify-self:start;margin-left:171px}.timeline .upcoming-open{grid-template-columns:130px 12px minmax(0,1fr) 20px}}
+@media(max-width:520px){.timeline .upcoming-open{grid-template-columns:1fr 14px}.timeline .upcoming-open>span:nth-child(3){grid-column:1/-1}.timeline .upcoming-open>svg{grid-column:2;grid-row:1}.timeline .upcoming-status,.timeline .upcoming-entry>.badge{margin-left:0}}
