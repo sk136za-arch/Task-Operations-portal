@@ -3,5 +3,86 @@ import { getDb } from "@/db";
 import { auditLogs, deployments, tasks } from "@/db/schema";
 import { requireRole } from "@/lib/authz";
 import { taskInput } from "@/lib/validation";
-export async function GET(_:Request,{params}:{params:Promise<{taskId:string}>}) { const auth=await requireRole(["admin","editor","viewer"]); if("error" in auth)return auth.error; const {taskId}=await params,db=getDb(); const [task]=await db.select().from(tasks).where(eq(tasks.taskId,taskId)).limit(1); if(!task)return Response.json({error:"Not found"},{status:404}); return Response.json({task,deployments:await db.select().from(deployments).where(eq(deployments.taskId,taskId))}); }
-export async function PATCH(request:Request,{params}:{params:Promise<{taskId:string}>}) { const auth=await requireRole(["admin","editor"]); if("error" in auth)return auth.error; const {taskId}=await params, parsed=taskInput.safeParse(await request.json()); if(!parsed.success||!parsed.data.revision)return Response.json({error:"Invalid task or revision"},{status:400}); if(parsed.data.startDate&&parsed.data.endDate&&parsed.data.endDate<parsed.data.startDate)return Response.json({error:"End date must be on or after start date"},{status:400}); const db=getDb(),[before]=await db.select().from(tasks).where(eq(tasks.taskId,taskId)).limit(1); if(!before)return Response.json({error:"Not found"},{status:404}); const now=new Date().toISOString(); const [updated]=await db.update(tasks).set({...parsed.data,revision:before.revision+1,updatedAt:now,updatedBy:auth.principal.identity.email}).where(and(eq(tasks.taskId,taskId),eq(tasks.revision,parsed.data.revision))).returning(); if(!updated)return Response.json({error:"Task changed by another user",current:before},{status:409}); await db.insert(auditLogs).values({actorId:auth.principal.identity.userId,actorEmail:auth.principal.identity.email,action:"update",entityType:"task",entityId:taskId,beforeJson:JSON.stringify(before),afterJson:JSON.stringify(updated),createdAt:now}); return Response.json(updated); }
+export async function GET(
+  _: Request,
+  { params }: { params: Promise<{ taskId: string }> },
+) {
+  const auth = await requireRole(["admin", "editor", "viewer"]);
+  if ("error" in auth) return auth.error;
+  const { taskId } = await params,
+    db = getDb();
+  const [task] = await db
+    .select()
+    .from(tasks)
+    .where(eq(tasks.taskId, taskId))
+    .limit(1);
+  if (!task) return Response.json({ error: "Not found" }, { status: 404 });
+  return Response.json({
+    task,
+    deployments: await db
+      .select()
+      .from(deployments)
+      .where(eq(deployments.taskId, taskId)),
+  });
+}
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ taskId: string }> },
+) {
+  const auth = await requireRole(["admin", "editor"]);
+  if ("error" in auth) return auth.error;
+  const { taskId } = await params,
+    parsed = taskInput.safeParse(await request.json());
+  if (!parsed.success || !parsed.data.revision)
+    return Response.json(
+      { error: "Invalid task or revision" },
+      { status: 400 },
+    );
+  if (
+    parsed.data.startDate &&
+    parsed.data.endDate &&
+    parsed.data.endDate < parsed.data.startDate
+  )
+    return Response.json(
+      { error: "End date must be on or after start date" },
+      { status: 400 },
+    );
+  const db = getDb(),
+    [before] = await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.taskId, taskId))
+      .limit(1);
+  if (!before) return Response.json({ error: "Not found" }, { status: 404 });
+  const now = new Date().toISOString();
+  const [updated] = await db
+    .update(tasks)
+    .set({
+      ...parsed.data,
+      revision: before.revision + 1,
+      updatedAt: now,
+      updatedBy: auth.principal.identity.email,
+    })
+    .where(
+      and(eq(tasks.taskId, taskId), eq(tasks.revision, parsed.data.revision)),
+    )
+    .returning();
+  if (!updated)
+    return Response.json(
+      { error: "Task changed by another user", current: before },
+      { status: 409 },
+    );
+  await db
+    .insert(auditLogs)
+    .values({
+      actorId: auth.principal.identity.userId,
+      actorEmail: auth.principal.identity.email,
+      action: "update",
+      entityType: "task",
+      entityId: taskId,
+      beforeJson: JSON.stringify(before),
+      afterJson: JSON.stringify(updated),
+      createdAt: now,
+    });
+  return Response.json(updated);
+}
