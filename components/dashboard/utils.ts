@@ -86,6 +86,13 @@ export const latestTaskDeployment = (
     )
     .at(-1)?.deployment ?? null;
 
+export const deploymentSprintFromDetail = (detail: string) => {
+  const match =
+    detail.match(/(?:deploy|release)\s*(?:sprint\s*)?sp\s*(\d+)/i) ??
+    detail.match(/\bsp\s*(\d+)\b/i);
+  return match ? `SP${match[1]}` : null;
+};
+
 export const dateInputValue = (date: Date | null) =>
   date
     ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
