@@ -4,7 +4,6 @@ import { PanelTitle } from "./overview";
 import type { Deployment, Task } from "./types";
 import {
   dateInputValue,
-  deploymentSprintFromDetail,
   latestTaskDeployment,
   taskDeployPlan,
   tone,
@@ -109,9 +108,10 @@ export function TaskTable({
           <tbody>
             {sorted.map((t) => {
               const plan = taskDeployPlan(t.taskId, deployments);
-              const sprint = deploymentSprintFromDetail(
-                latestTaskDeployment(t.taskId, deployments)?.detail ?? "",
-              );
+              const sprint = latestTaskDeployment(
+                t.taskId,
+                deployments,
+              )?.sprint.trim();
               return (
                 <tr key={t.taskId} onClick={() => onPick(t)}>
                   <td>
