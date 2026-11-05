@@ -800,11 +800,16 @@ td svg {
 
 /* Keep every upcoming deployment available without making the dashboard endless. */
 .upcoming-scroll {
+  width: 100%;
+  min-width: 0;
   max-height: min(720px, 70vh);
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   padding-right: 8px;
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  container-type: inline-size;
+  container-name: upcoming-list;
 }
 
 .upcoming-scroll::-webkit-scrollbar {
@@ -2511,6 +2516,51 @@ tbody tr:hover {
   text-overflow: clip;
   line-height: 1.45;
 }
+
+.timeline .upcoming-open > span:nth-child(3) {
+  min-width: 0;
+}
+
+.upcoming-scroll .upcoming-entry:is(.due-3, .due-7, .due-11) {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+@container upcoming-list (max-width: 700px) {
+  .timeline .upcoming-entry {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .timeline .upcoming-status,
+  .timeline .upcoming-entry > .badge {
+    justify-self: start;
+    margin-left: 171px;
+  }
+
+  .timeline .upcoming-open {
+    grid-template-columns: 130px 12px minmax(0, 1fr) 20px;
+  }
+}
+
+@container upcoming-list (max-width: 480px) {
+  .timeline .upcoming-open {
+    grid-template-columns: minmax(0, 1fr) 14px;
+  }
+
+  .timeline .upcoming-open > span:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .timeline .upcoming-open > svg {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .timeline .upcoming-status,
+  .timeline .upcoming-entry > .badge {
+    margin-left: 0;
+  }
+}
 .timeline .upcoming-status {
   width: 100%;
   max-width: 170px;
@@ -2595,4 +2645,46 @@ tbody tr:hover {
   z-index: 2147483647;
   bottom: auto;
   transform: translate(-50%, -100%);
+}
+
+/* Final responsive overrides must follow the legacy viewport rules above. */
+.upcoming-scroll .upcoming-entry:is(.due-3, .due-7, .due-11) {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+@container upcoming-list (max-width: 700px) {
+  .timeline .upcoming-entry {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .timeline .upcoming-status,
+  .timeline .upcoming-entry > .badge {
+    justify-self: start;
+    margin-left: 171px;
+  }
+
+  .timeline .upcoming-open {
+    grid-template-columns: 130px 12px minmax(0, 1fr) 20px;
+  }
+}
+
+@container upcoming-list (max-width: 480px) {
+  .timeline .upcoming-open {
+    grid-template-columns: minmax(0, 1fr) 14px;
+  }
+
+  .timeline .upcoming-open > span:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .timeline .upcoming-open > svg {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .timeline .upcoming-status,
+  .timeline .upcoming-entry > .badge {
+    margin-left: 0;
+  }
 }
