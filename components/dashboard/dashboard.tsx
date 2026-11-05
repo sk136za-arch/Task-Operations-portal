@@ -133,8 +133,7 @@ export default function Dashboard({
         x.date >= today &&
         (year === "all" || String(x.date.getFullYear()) === year),
     )
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
-    .slice(0, 8);
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
   const activeTasks = filtered.filter((t) => !isDone(t));
   const doneTasks = filtered.filter(isDone);
   const stats = {
@@ -531,7 +530,7 @@ export default function Dashboard({
                 title="Upcoming deployment timeline"
                 subtitle="Future deployments with a valid deploy plan date, ordered nearest first"
               />
-              <div className="timeline">
+              <div className="timeline upcoming-scroll">
                 {upcoming.map(({ d, date }) => {
                   const task = tasks.find((t) => t.taskId === d.taskId);
                   const daysUntil = Math.ceil(
