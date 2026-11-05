@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Activity,
   Archive,
@@ -54,6 +55,7 @@ export default function Dashboard({
   principal: { email: string; name: string; role: string };
   signOutPath: string;
 }) {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [team, setTeam] = useState("all");
@@ -156,7 +158,13 @@ export default function Dashboard({
       const text = await r.text();
       const body = text ? JSON.parse(text) : {};
       if (!r.ok) throw new Error(body.error || "Request failed");
-      location.reload();
+      setTaskForm(null);
+      setDeploymentForm(null);
+      setUserForm(false);
+      setEditingUser(null);
+      setActive(null);
+      router.refresh();
+      setBusy(false);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Request failed");
       setBusy(false);
@@ -1021,3 +1029,4 @@ export default function Dashboard({
     </div>
   );
 }
+
