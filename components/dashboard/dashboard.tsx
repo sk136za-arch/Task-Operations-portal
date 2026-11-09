@@ -275,6 +275,19 @@ export default function Dashboard({
       },
     );
   }
+  async function updateDeploymentResult(
+    deployment: Deployment,
+    result: string,
+  ) {
+    await request(
+      `/api/tasks/${deployment.taskId}/deployments/${deployment.id}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...deployment, result }),
+      },
+    );
+  }
   async function deleteDeployment(deployment: Deployment) {
     if (
       !confirm(
@@ -782,6 +795,25 @@ export default function Dashboard({
                     </b>
                     <small>{d.detail}</small>
                   </span>
+                  {principal.role !== "viewer" ? (
+                    <select
+                      aria-label={`Update result for ${d.sprint || d.type}`}
+                      className={`deployment-result ${d.result}`}
+                      value={d.result}
+                      onChange={(event) =>
+                        updateDeploymentResult(d, event.target.value)
+                      }
+                    >
+                      <option value="planned">Planned</option>
+                      <option value="success">Success</option>
+                      <option value="failed">Failed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  ) : (
+                    <i className={`deployment-result ${d.result}`}>
+                      {d.result}
+                    </i>
+                  )}
                   {principal.role !== "viewer" && (
                     <span className="plan-actions">
                       <button
@@ -824,6 +856,14 @@ export default function Dashboard({
         <Modal
           title={taskForm.revision ? `Edit ${taskForm.taskId}` : "Create task"}
           close={() => setTaskForm(null)}
+          back={
+            taskForm.revision
+              ? () => {
+                  setActive(taskForm);
+                  setTaskForm(null);
+                }
+              : undefined
+          }
         >
           <form className="form" onSubmit={saveTask}>
             {taskForm.revision ? (
@@ -915,6 +955,10 @@ export default function Dashboard({
         <Modal
           title={`${deploymentForm.deployment ? "Edit" : "Add"} deployment plan · ${deploymentForm.task.taskId}`}
           close={() => setDeploymentForm(null)}
+          back={() => {
+            setActive(deploymentForm.task);
+            setDeploymentForm(null);
+          }}
         >
           <form className="form" onSubmit={saveDeployment}>
             <Field
@@ -1028,4 +1072,3 @@ export default function Dashboard({
     </div>
   );
 }
-

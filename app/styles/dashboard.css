@@ -627,6 +627,45 @@ td svg {
   margin-top: 4px;
   color: #6d7a74;
 }
+.deployment-result {
+  align-self: flex-start;
+  margin-left: auto;
+  border: 0;
+  border-radius: 4px;
+  padding: 6px 24px 6px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+select.deployment-result {
+  cursor: pointer;
+}
+.deployment-result.planned {
+  background: #edeefe;
+  color: #5868cd;
+}
+.deployment-result.success {
+  background: #e4f3e9;
+  color: #397650;
+}
+.deployment-result.failed {
+  background: #fbe6e7;
+  color: #9f4d55;
+}
+.deployment-result.cancelled {
+  background: #fff2d9;
+  color: #8e682d;
+}
+.modal-back {
+  border: 0;
+  background: transparent;
+  color: #5869d8;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
 .wide {
   width: 100%;
   margin-top: 24px;

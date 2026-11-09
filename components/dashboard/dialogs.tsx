@@ -3,15 +3,22 @@ import type React from "react";
 export function Modal({
   title,
   close,
+  back,
   children,
 }: {
   title: string;
   close: () => void;
+  back?: () => void;
   children: React.ReactNode;
 }) {
   return (
     <div className="drawer-backdrop" onClick={close}>
       <aside className="drawer" onClick={(e) => e.stopPropagation()}>
+        {back && (
+          <button className="modal-back" onClick={back}>
+            ← Back
+          </button>
+        )}
         <button className="close" onClick={close}>
           ×
         </button>
