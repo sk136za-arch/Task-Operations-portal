@@ -28,6 +28,10 @@ export async function POST(
       .insert(deployments)
       .values({ ...parsed.data, taskId, createdAt: now, updatedAt: now })
       .returning();
+  await db
+    .update(tasks)
+    .set({ updatedAt: now, updatedBy: auth.principal.identity.email })
+    .where(eq(tasks.taskId, taskId));
   await db.insert(auditLogs).values({
     actorId: auth.principal.identity.userId,
     actorEmail: auth.principal.identity.email,

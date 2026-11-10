@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { auditLogs, deployments } from "@/db/schema";
+import { auditLogs, deployments, tasks } from "@/db/schema";
 import { requireRole } from "@/lib/authz";
 import { deploymentInput } from "@/lib/validation";
 export async function PATCH(
@@ -31,6 +31,10 @@ export async function PATCH(
       .set({ ...parsed.data, updatedAt: now })
       .where(eq(deployments.id, id))
       .returning();
+  await db
+    .update(tasks)
+    .set({ updatedAt: now, updatedBy: auth.principal.identity.email })
+    .where(eq(tasks.taskId, taskId));
   await db.insert(auditLogs).values({
     actorId: auth.principal.identity.userId,
     actorEmail: auth.principal.identity.email,
@@ -59,7 +63,12 @@ export async function DELETE(
     .limit(1);
   if (!before || before.taskId !== taskId)
     return Response.json({ error: "Not found" }, { status: 404 });
+  const now = new Date().toISOString();
   await db.delete(deployments).where(eq(deployments.id, id));
+  await db
+    .update(tasks)
+    .set({ updatedAt: now, updatedBy: auth.principal.identity.email })
+    .where(eq(tasks.taskId, taskId));
   await db.insert(auditLogs).values({
     actorId: auth.principal.identity.userId,
     actorEmail: auth.principal.identity.email,
@@ -67,7 +76,7 @@ export async function DELETE(
     entityType: "deployment",
     entityId: deploymentId,
     beforeJson: JSON.stringify(before),
-    createdAt: new Date().toISOString(),
+    createdAt: now,
   });
   return new Response(null, { status: 204 });
 }
