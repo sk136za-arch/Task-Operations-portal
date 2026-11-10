@@ -72,6 +72,13 @@ export default function Dashboard({
   } | null>(null);
   const [userForm, setUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [completionChoice, setCompletionChoice] = useState<{
+    task: Task;
+    deployments: Deployment[];
+  } | null>(null);
+  const [completionDeploymentId, setCompletionDeploymentId] = useState<
+    number | null
+  >(null);
   const [busy, setBusy] = useState(false);
   const [timelineRange] = useState(timelineDefaultRange);
   const [startDate, setStartDate] = useState(timelineRange.startDate);
@@ -244,11 +251,47 @@ export default function Dashboard({
     );
   }
   async function updateTaskStatus(task: Task, nextStatus: string) {
+    if (nextStatus.trim().toLowerCase() === "deploy prod done") {
+      await completeProduction(task);
+      return;
+    }
     await request(`/api/tasks/${task.taskId}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...task, status: nextStatus }),
     });
+  }
+  async function completeProduction(task: Task, deploymentId?: number) {
+    setBusy(true);
+    try {
+      const response = await fetch(
+        `/api/tasks/${task.taskId}/complete-production`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ revision: task.revision, deploymentId }),
+        },
+      );
+      const body = await response.json();
+      if (
+        response.status === 409 &&
+        body.code === "deployment_selection_required"
+      ) {
+        setCompletionChoice({ task, deployments: body.deployments });
+        setCompletionDeploymentId(null);
+        return;
+      }
+      if (!response.ok) throw new Error(body.error || "Request failed");
+      setCompletionChoice(null);
+      setCompletionDeploymentId(null);
+      setActive(null);
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Request failed");
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
   }
   async function updateDeployPlanDate(
     deployment: Deployment,
@@ -739,6 +782,73 @@ export default function Dashboard({
           </section>
         )}
       </main>
+      {completionChoice && (
+        <Modal
+          title={`Choose successful deployment · ${completionChoice.task.taskId}`}
+          close={() => {
+            setCompletionChoice(null);
+            setCompletionDeploymentId(null);
+          }}
+        >
+          <p className="completion-help">
+            This task has multiple planned deployments. Choose one to mark as
+            success. The task status will remain unchanged.
+          </p>
+          <div className="completion-options">
+            {completionChoice.deployments.map((deployment) => (
+              <label
+                className={`completion-option ${
+                  completionDeploymentId === deployment.id ? "selected" : ""
+                }`}
+                key={deployment.id}
+              >
+                <input
+                  type="radio"
+                  name="successfulDeployment"
+                  checked={completionDeploymentId === deployment.id}
+                  onChange={() => setCompletionDeploymentId(deployment.id)}
+                />
+                <span>
+                  <b>
+                    {deployment.sprint || deployment.type.toUpperCase()} ·{" "}
+                    {deployment.environment}
+                  </b>
+                  <strong>
+                    {deployment.plannedDate || deployment.dateLabel || "No date"}
+                  </strong>
+                  <small>{deployment.detail}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="completion-actions">
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => {
+                setCompletionChoice(null);
+                setCompletionDeploymentId(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              className="primary"
+              type="button"
+              disabled={completionDeploymentId === null || busy}
+              onClick={() => {
+                if (completionDeploymentId !== null)
+                  completeProduction(
+                    completionChoice.task,
+                    completionDeploymentId,
+                  );
+              }}
+            >
+              {busy ? "Saving…" : "Mark as success"}
+            </button>
+          </div>
+        </Modal>
+      )}
       {active && (
         <div className="drawer-backdrop" onClick={() => setActive(null)}>
           <aside className="drawer" onClick={(e) => e.stopPropagation()}>
