@@ -2,12 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { PanelTitle } from "./overview";
 import type { Deployment, Task } from "./types";
-import {
-  dateInputValue,
-  latestTaskDeployment,
-  taskDeployPlan,
-  tone,
-} from "./utils";
+import { dateInputValue, taskDeployPlan, tone } from "./utils";
 
 export function TaskTable({
   title,
@@ -108,10 +103,7 @@ export function TaskTable({
           <tbody>
             {sorted.map((t) => {
               const plan = taskDeployPlan(t.taskId, deployments);
-              const sprint = latestTaskDeployment(
-                t.taskId,
-                deployments,
-              )?.sprint.trim();
+              const sprint = plan?.d.sprint.trim();
               return (
                 <tr key={t.taskId} onClick={() => onPick(t)}>
                   <td>

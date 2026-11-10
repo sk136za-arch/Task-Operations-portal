@@ -72,6 +72,47 @@ export async function PATCH(
       { error: "Task changed by another user", current: before },
       { status: 409 },
     );
+  const movedToDeployProdDone =
+    before.status.trim().toLowerCase() !== "deploy prod done" &&
+    updated.status.trim().toLowerCase() === "deploy prod done";
+  const plannedDeployments = movedToDeployProdDone
+    ? await db
+        .select()
+        .from(deployments)
+        .where(
+          and(
+            eq(deployments.taskId, taskId),
+            eq(deployments.result, "planned"),
+          ),
+        )
+    : [];
+  if (plannedDeployments.length) {
+    await db
+      .update(deployments)
+      .set({ result: "success", updatedAt: now })
+      .where(
+        and(
+          eq(deployments.taskId, taskId),
+          eq(deployments.result, "planned"),
+        ),
+      );
+    for (const deployment of plannedDeployments) {
+      await db.insert(auditLogs).values({
+        actorId: auth.principal.identity.userId,
+        actorEmail: auth.principal.identity.email,
+        action: "auto-success",
+        entityType: "deployment",
+        entityId: String(deployment.id),
+        beforeJson: JSON.stringify(deployment),
+        afterJson: JSON.stringify({
+          ...deployment,
+          result: "success",
+          updatedAt: now,
+        }),
+        createdAt: now,
+      });
+    }
+  }
   await db
     .insert(auditLogs)
     .values({

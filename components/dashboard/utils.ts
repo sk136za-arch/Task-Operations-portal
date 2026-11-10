@@ -66,7 +66,11 @@ export const taskDeployPlan = (taskId: string, deployments: Deployment[]) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const plans = deployments
-    .filter((deployment) => deployment.taskId === taskId)
+    .filter(
+      (deployment) =>
+        deployment.taskId === taskId &&
+        deployment.result.trim().toLowerCase() === "planned",
+    )
     .map((d) => ({ d, date: deployPlanDate(d) }))
     .filter((item): item is { d: Deployment; date: Date } => Boolean(item.date))
     .sort((a, b) => a.date.getTime() - b.date.getTime());

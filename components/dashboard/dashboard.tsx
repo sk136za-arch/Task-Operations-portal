@@ -115,6 +115,7 @@ export default function Dashboard({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const upcoming = deployments
+    .filter((d) => d.result.trim().toLowerCase() === "planned")
     .map((d) => ({
       d: {
         ...d,

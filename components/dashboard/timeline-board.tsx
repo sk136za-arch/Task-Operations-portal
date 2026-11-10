@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { Deployment, Task } from "./types";
-import { latestTaskDeployment, taskDeployPlan } from "./utils";
+import { taskDeployPlan } from "./utils";
 
 const dayKey = (date: Date) =>
   `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
@@ -103,7 +103,6 @@ export function TimelineBoard({
     .filter((task) => environment === "all" || task.environment === environment)
     .map((task) => {
       const plan = taskDeployPlan(task.taskId, deployments);
-      const latestDeployment = latestTaskDeployment(task.taskId, deployments);
       const explicitStart = task.startDate
         ? new Date(`${task.startDate}T00:00:00`)
         : null;
@@ -113,7 +112,7 @@ export function TimelineBoard({
       const finish = explicitEnd ?? plan?.date ?? null;
       if (!finish) return null;
       const begin = explicitStart ?? inferredTaskStart(task, finish);
-      return { task, d: latestDeployment ?? undefined, finish, begin };
+      return { task, d: plan?.d, finish, begin };
     })
     .filter(
       (
