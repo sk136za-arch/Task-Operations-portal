@@ -60,7 +60,7 @@ export default function Dashboard({
   const [status, setStatus] = useState("all");
   const [team, setTeam] = useState("all");
   const [environment, setEnvironment] = useState("all");
-  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [year, setYear] = useState("all");
   const [active, setActive] = useState<Task | null>(null);
   const [tab, setTab] = useState<
     "overview" | "tasks" | "done" | "timeline" | "config" | "access"
@@ -81,32 +81,23 @@ export default function Dashboard({
     () =>
       [
         ...new Set(
-          deployments
-            .map((d) => deployPlanDate(d)?.getFullYear())
+          tasks
+            .map((task) => new Date(task.updatedAt).getFullYear())
             .filter((v): v is number => Boolean(v)),
         ),
       ].sort((a, b) => b - a),
-    [deployments],
+    [tasks],
   );
   const dueThresholds = useMemo(() => dueThresholdsFrom(lookups), [lookups]);
-  const deploymentTaskIds = useMemo(
-    () =>
-      new Set(
-        deployments
-          .filter(
-            (d) =>
-              year === "all" ||
-              String(deployPlanDate(d)?.getFullYear()) === year,
-          )
-          .map((d) => d.taskId),
-      ),
-    [deployments, year],
-  );
+  const taskMatchesYear = (task?: Task) =>
+    year === "all" ||
+    (task !== undefined &&
+      String(new Date(task.updatedAt).getFullYear()) === year);
   const filtered = useMemo(
     () =>
       tasks.filter(
         (t) =>
-          (year === "all" || deploymentTaskIds.has(t.taskId)) &&
+          taskMatchesYear(t) &&
           (status === "all" || t.status === status) &&
           (team === "all" || t.team === team) &&
           (environment === "all" || t.environment === environment) &&
@@ -115,7 +106,11 @@ export default function Dashboard({
               .toLowerCase()
               .includes(q.toLowerCase())),
       ),
-    [tasks, status, team, environment, q, year, deploymentTaskIds],
+    [tasks, status, team, environment, q, year],
+  );
+  const tasksById = useMemo(
+    () => new Map(tasks.map((task) => [task.taskId, task])),
+    [tasks],
   );
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -131,7 +126,7 @@ export default function Dashboard({
       (x): x is { d: Deployment; date: Date } =>
         x.date !== null &&
         x.date >= today &&
-        (year === "all" || String(x.date.getFullYear()) === year),
+        taskMatchesYear(tasksById.get(x.d.taskId)),
     )
     .sort((a, b) => a.date.getTime() - b.date.getTime());
   const activeTasks = filtered.filter((t) => !isDone(t));
