@@ -179,6 +179,69 @@ select {
   color: #66756e;
   font-size: 14px;
 }
+.file-picker {
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+}
+.file-picker-label {
+  color: #536075;
+  font-size: 14px;
+  font-weight: 700;
+}
+.file-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.file-picker-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #5268e9;
+  border-radius: 7px;
+  background: #f7f8ff;
+  color: #4057d8;
+  font-weight: 700;
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.file-picker:hover .file-picker-button,
+.file-picker:focus-within .file-picker-button {
+  border-color: #314bdb;
+  background: #eef0ff;
+  box-shadow: 0 0 0 3px rgba(82, 104, 233, .16);
+}
+.file-picker:active .file-picker-button {
+  transform: translateY(1px);
+}
+.file-picker-icon {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: #dfe4ff;
+  font-size: 15px;
+  line-height: 1;
+}
+.file-picker-name {
+  overflow: hidden;
+  color: #78849a;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-picker-name.selected {
+  color: #2f6c47;
+  font-weight: 700;
+}
 .csv-file {
   margin: 0;
   color: #536075;

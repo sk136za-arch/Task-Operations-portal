@@ -1097,15 +1097,21 @@ export default function Dashboard({
             <p className="form-note">
               Choose a CSV exported by Task Ops Portal. The file is validated completely before any data is changed.
             </p>
-            <label>
-              CSV file
+            <label className="file-picker">
+              <span className="file-picker-label">CSV file</span>
               <input
                 type="file"
                 accept=".csv,text/csv"
                 onChange={(event) => setCsvFile(event.target.files?.[0] ?? null)}
               />
+              <span className="file-picker-button" aria-hidden="true">
+                <span className="file-picker-icon">↑</span>
+                Choose CSV file
+              </span>
+              <span className={csvFile ? "file-picker-name selected" : "file-picker-name"}>
+                {csvFile ? csvFile.name : "No file selected"}
+              </span>
             </label>
-            {csvFile && <p className="csv-file">Selected: <b>{csvFile.name}</b></p>}
             <div className="completion-actions">
               <button className="secondary" disabled={!csvFile || busy} onClick={() => importCsv("insert")}>
                 {busy ? "Importing…" : "Insert records"}

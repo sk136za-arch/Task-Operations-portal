@@ -35,9 +35,21 @@ Set the local values printed by `supabase start` (the usual API URL is `http://1
 ```env
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_SECRET_KEY=<local-service_role-key-from-supabase-start>
+# Optional admins in addition to sk136za@gmail.com
+ADMIN_EMAILS=admin1@example.com,admin2@example.com
 ```
 
 You may use the equivalent `SUPABASE_SERVICE_ROLE_KEY` variable name instead. Use the **service_role** key printed by `supabase start`, not the anon key.
+
+Every signed-in user is automatically added to **Access** as a `viewer` on their first visit; viewers can view data but cannot make changes. Add comma-separated addresses to `ADMIN_EMAILS` to promote them to admin automatically. `sk136za@gmail.com` remains an admin even when `ADMIN_EMAILS` is empty.
+
+When running locally, the ChatGPT sign-in mock always uses `seedy@sites.test`. To use the full local admin experience, include it in the admin list:
+
+```env
+ADMIN_EMAILS=seedy@sites.test
+```
+
+Restart `npm run dev` after changing `.env.local`.
 
 Never commit `.env.local`, expose `SUPABASE_SECRET_KEY` to browser code, or prefix it with `NEXT_PUBLIC_`.
 
@@ -89,7 +101,6 @@ Additional commands:
 
 ```powershell
 npm run lint
-npm run db:generate
 ```
 
 ## Deploy to production
