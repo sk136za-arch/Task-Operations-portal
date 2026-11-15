@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   TestTube2,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { Chart, Kpi, PanelTitle } from "./overview";
 import { TaskTable } from "./task-table";
@@ -80,6 +81,9 @@ export default function Dashboard({
     number | null
   >(null);
   const [busy, setBusy] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvNotice, setCsvNotice] = useState("");
   const [timelineRange] = useState(timelineDefaultRange);
   const [startDate, setStartDate] = useState(timelineRange.startDate);
   const [endDate, setEndDate] = useState(timelineRange.endDate);
@@ -174,6 +178,29 @@ export default function Dashboard({
   }
   async function runImport() {
     await request("/api/admin/import", { method: "POST" });
+  }
+  async function importCsv(mode: "insert" | "replace") {
+    if (!csvFile) return;
+    setBusy(true);
+    try {
+      const data = new FormData();
+      data.set("file", csvFile);
+      data.set("mode", mode);
+      const response = await fetch("/api/import/tasks", { method: "POST", body: data });
+      const body = await response.json();
+      if (!response.ok) {
+        const details = Array.isArray(body.issues) ? `\n${body.issues.join("\n")}` : "";
+        throw new Error(`${body.error || "Import failed"}${details}`);
+      }
+      setCsvNotice(`${mode === "replace" ? "Replaced" : "Added"} ${body.taskCount} tasks and ${body.deploymentCount} deployment plans.`);
+      setCsvImportOpen(false);
+      setCsvFile(null);
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Import failed");
+    } finally {
+      setBusy(false);
+    }
   }
   async function saveTask(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -448,6 +475,12 @@ export default function Dashboard({
               <Download />
               Export CSV
             </a>
+            {principal.role === "admin" && (
+              <button className="secondary" onClick={() => setCsvImportOpen(true)}>
+                <Upload />
+                Import CSV
+              </button>
+            )}
             {principal.role !== "viewer" && (
               <button
                 className="primary"
@@ -459,6 +492,7 @@ export default function Dashboard({
             )}
           </div>
         </header>
+        {csvNotice && <p className="csv-notice" role="status">{csvNotice}</p>}
         {tab !== "access" && tab !== "timeline" && (
           <div className="filters">
             <label>
@@ -1055,6 +1089,35 @@ export default function Dashboard({
               {busy ? "Saving…" : "Save task"}
             </button>
           </form>
+        </Modal>
+      )}
+      {csvImportOpen && (
+        <Modal title="Import Task Ops CSV" close={() => { setCsvImportOpen(false); setCsvFile(null); }}>
+          <div className="csv-import">
+            <p className="form-note">
+              Choose a CSV exported by Task Ops Portal. The file is validated completely before any data is changed.
+            </p>
+            <label>
+              CSV file
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => setCsvFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            {csvFile && <p className="csv-file">Selected: <b>{csvFile.name}</b></p>}
+            <div className="completion-actions">
+              <button className="secondary" disabled={!csvFile || busy} onClick={() => importCsv("insert")}>
+                {busy ? "Importing…" : "Insert records"}
+              </button>
+              <button className="primary" disabled={!csvFile || busy} onClick={() => importCsv("replace")}>
+                {busy ? "Importing…" : "Replace all data"}
+              </button>
+            </div>
+            <p className="form-note">
+              Insert keeps existing tasks and adds the CSV records. Replace restores the CSV snapshot and removes existing tasks, deployment plans, and lookup settings.
+            </p>
+          </div>
         </Modal>
       )}
       {deploymentForm && (

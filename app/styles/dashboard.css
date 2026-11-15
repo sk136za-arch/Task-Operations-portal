@@ -158,6 +158,32 @@ select {
   display: flex;
   gap: 10px;
 }
+.csv-notice {
+  margin: -16px 0 20px;
+  padding: 11px 14px;
+  border: 1px solid #c7e3d2;
+  border-radius: 6px;
+  background: #edf9f1;
+  color: #24603d;
+  font-size: 14px;
+  font-weight: 700;
+}
+.csv-import {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+.csv-import > label {
+  display: grid;
+  gap: 7px;
+  color: #66756e;
+  font-size: 14px;
+}
+.csv-file {
+  margin: 0;
+  color: #536075;
+  font-size: 14px;
+}
 .primary,
 .secondary {
   height: 42px;

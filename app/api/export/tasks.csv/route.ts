@@ -1,48 +1,16 @@
 import { getDb } from "@/db";
-import { tasks } from "@/db/schema";
+import { deployments, lookupValues, tasks } from "@/db/schema";
 import { requireRole } from "@/lib/authz";
-const csv = (v: unknown) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+import { snapshotToCsv } from "@/lib/task-csv";
 export async function GET() {
   const auth = await requireRole(["admin", "editor", "viewer"]);
   if ("error" in auth) return auth.error;
-  const rows = await getDb().select().from(tasks),
-    headers = [
-      "Task ID",
-      "Environment",
-      "Team",
-      "Service",
-      "Task / Epic",
-      "UAT Deploy",
-      "PROD Detail",
-      "Work Status",
-      "Remark",
-      "Revision",
-      "Updated At",
-      "Updated By",
-    ];
-  const body =
-    "\uFEFF" +
-    [
-      headers.map(csv),
-      ...rows.map((t) =>
-        [
-          t.taskId,
-          t.environment,
-          t.team,
-          t.service,
-          t.title,
-          t.uatDetail,
-          t.productionDetail,
-          t.status,
-          t.remark,
-          t.revision,
-          t.updatedAt,
-          t.updatedBy,
-        ].map(csv),
-      ),
-    ]
-      .map((r) => r.join(","))
-      .join("\r\n");
+  const db = getDb();
+  const body = snapshotToCsv({
+    tasks: await db.select().from(tasks),
+    deployments: await db.select().from(deployments),
+    lookups: await db.select().from(lookupValues),
+  });
   return new Response(body, {
     headers: {
       "content-type": "text/csv; charset=utf-8",
