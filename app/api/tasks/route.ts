@@ -1,0 +1,87 @@
+import { desc, eq, like, or } from "drizzle-orm";
+import { getDb } from "@/db";
+import { auditLogs, tasks } from "@/db/schema";
+import { requireRole } from "@/lib/authz";
+import { taskInput } from "@/lib/validation";
+export async function GET(request: Request) {
+  const auth = await requireRole(["admin", "editor", "viewer"]);
+  if ("error" in auth) return auth.error;
+  const q = new URL(request.url).searchParams.get("q")?.trim();
+  const db = getDb();
+  return Response.json(
+    await db
+      .select()
+      .from(tasks)
+      .where(
+        q
+          ? or(
+              like(tasks.taskId, `%${q}%`),
+              like(tasks.title, `%${q}%`),
+              like(tasks.service, `%${q}%`),
+            )
+          : undefined,
+      )
+      .orderBy(desc(tasks.updatedAt))
+      .limit(500),
+  );
+}
+export async function POST(request: Request) {
+  const auth = await requireRole(["admin", "editor"]);
+  if ("error" in auth) return auth.error;
+  const parsed = taskInput
+    .omit({ taskId: true, revision: true })
+    .safeParse(await request.json());
+  if (!parsed.success)
+    return Response.json(
+      { error: "Invalid task", issues: parsed.error.flatten() },
+      { status: 400 },
+    );
+  if (
+    parsed.data.startDate &&
+    parsed.data.endDate &&
+    parsed.data.endDate < parsed.data.startDate
+  )
+    return Response.json(
+      { error: "End date must be on or after start date" },
+      { status: 400 },
+    );
+  const db = getDb(),
+    now = new Date().toISOString();
+  try {
+    const temporaryId = `AUTO-${crypto.randomUUID()}`;
+    const [inserted] = await db
+      .insert(tasks)
+      .values({
+        ...parsed.data,
+        taskId: temporaryId,
+        revision: 1,
+        createdAt: now,
+        updatedAt: now,
+        updatedBy: auth.principal.identity.email,
+      })
+      .returning();
+    const taskId = `BLS-${String(inserted.id).padStart(2, "0")}`;
+    const [created] = await db
+      .update(tasks)
+      .set({ taskId })
+      .where(eq(tasks.id, inserted.id))
+      .returning();
+    await db
+      .insert(auditLogs)
+      .values({
+        actorId: auth.principal.identity.userId,
+        actorEmail: auth.principal.identity.email,
+        action: "create",
+        entityType: "task",
+        entityId: created.taskId,
+        afterJson: JSON.stringify(created),
+        createdAt: now,
+      });
+    return Response.json(created, { status: 201 });
+  } catch {
+    return Response.json(
+      { error: "Unable to generate a unique Task ID" },
+      { status: 409 },
+    );
+  }
+}

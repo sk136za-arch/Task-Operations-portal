@@ -1,0 +1,760 @@
+{
+  "source": {
+    "spreadsheetId": "12esQ9PEh_6q0l1SFcW5JH85Q_F3hUFka2CnPs2y2XFU",
+    "title": "🌈 Core Work Summary",
+    "importedAt": "2026-10-28T19:30:00+07:00"
+  },
+  "preview": {
+    "validTasks": 41,
+    "deployments": 23,
+    "warnings": 0,
+    "duplicates": 1,
+    "rejected": 0
+  },
+  "lookups": {
+    "environments": [
+      "Amaze",
+      "Phoenix",
+      "Axtramall"
+    ],
+    "teams": [
+      "Core Com (HPC)",
+      "SSO",
+      "Point engine",
+      "Promotion engine",
+      "Search&AI"
+    ],
+    "statuses": [
+      "Deploy prod done",
+      "In progress",
+      "Testing",
+      "To-Do",
+      "Cancel",
+      "Waiting for deploy",
+      "Ready to test",
+      "Fail"
+    ],
+    "services": [
+      "Point",
+      "Rfilter",
+      "Promotion",
+      "Authentication",
+      "Company + Inventory",
+      "USO",
+      "Authorization",
+      "SMS",
+      "File",
+      "R4m"
+    ]
+  },
+  "tasks": [
+    {
+      "taskId": "BLS-01",
+      "environment": "Amaze",
+      "team": "Point engine",
+      "service": "Point",
+      "title": "[Amaze][Point] Add key transaction for webhook api",
+      "uatDetail": "",
+      "productionDetail": "Deploy prod 25 May",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 5
+    },
+    {
+      "taskId": "BLS-02",
+      "environment": "Amaze",
+      "team": "Point engine",
+      "service": "Point",
+      "title": "[Amaze][Point] Provide new api /update_transactions_value for update transaction value",
+      "uatDetail": "",
+      "productionDetail": "Deploy prod 25 May",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 6
+    },
+    {
+      "taskId": "BLS-03",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Rfilter",
+      "title": "Enhance check status กรณีเพิ่ม file product for 1688\nทำแบบ patial",
+      "uatDetail": "",
+      "productionDetail": "Deploy prod 25 May",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 7
+    },
+    {
+      "taskId": "BLS-04",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "[Issue][1688] list_filter_oos error 500 when send page xx and limit -1 on param",
+      "uatDetail": "",
+      "productionDetail": "Deploy prod 25 May",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 8
+    },
+    {
+      "taskId": "BLS-05",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "[Issue][1688] Cache check stock inventory",
+      "uatDetail": "",
+      "productionDetail": "HOT FIX",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 9
+    },
+    {
+      "taskId": "BLS-06",
+      "environment": "Amaze",
+      "team": "Point engine",
+      "service": "Point",
+      "title": "Policy +7",
+      "uatDetail": "",
+      "productionDetail": "Deploy prod 25 May",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 10
+    },
+    {
+      "taskId": "BLS-07",
+      "environment": "Phoenix",
+      "team": "Core Com (HPC)",
+      "service": "Promotion",
+      "title": "Tencent Migration (HPC Service)",
+      "uatDetail": "",
+      "productionDetail": "Deploy prod 28 May",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 11
+    },
+    {
+      "taskId": "BLS-08",
+      "environment": "Phoenix",
+      "team": "Promotion engine",
+      "service": "Promotion",
+      "title": "Release Promotion Phase 1\n\n<weight route c++ , golang>",
+      "uatDetail": "",
+      "productionDetail": "[Phase0] Monday\nDeploy prod 08/06/2026\n\n[Phase1] Thursday\nDeploy prod 11/06/2026\n\n[Phase1-2] Thursday\nDeploy prod 18/06/2026",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 12
+    },
+    {
+      "taskId": "BLS-09",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "Release Companystore and Inventory service (golang)",
+      "uatDetail": "เอา code ขึ้น UAT 12 June (ตามรอบUAT)",
+      "productionDetail": "Deploy prod 22 June",
+      "status": "Deploy prod done",
+      "remark": "- kafka 7-11 เรื่อง pods\n- re-test get_nearest\n\n- migrate data ก่อนขึ้น prod 1 week",
+      "sourceRow": 13
+    },
+    {
+      "taskId": "BLS-10",
+      "environment": "Phoenix",
+      "team": "Promotion engine",
+      "service": "Promotion",
+      "title": "slabprice",
+      "uatDetail": "",
+      "productionDetail": "Deploy prod 23/06/2026\n\nRelease 25/06/2026",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 14
+    },
+    {
+      "taskId": "BLS-11",
+      "environment": "Phoenix",
+      "team": "Promotion engine",
+      "service": "Promotion",
+      "title": "member price",
+      "uatDetail": "",
+      "productionDetail": "Deploy prod 23/06/2026\n\nRelease 02/07/2026",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 15
+    },
+    {
+      "taskId": "BLS-12",
+      "environment": "Amaze",
+      "team": "SSO",
+      "service": "Authentication",
+      "title": "get token & login",
+      "uatDetail": "",
+      "productionDetail": "03-07-2026",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 16
+    },
+    {
+      "taskId": "BLS-26",
+      "environment": "Phoenix",
+      "team": "Promotion engine",
+      "service": "Promotion",
+      "title": "existing promotion with fixing code review p0 p1",
+      "uatDetail": "9 Sep",
+      "productionDetail": "Tag: v2.0.18.4\nRelease sp18",
+      "status": "Cancel",
+      "remark": "branch from v2.0.16",
+      "sourceRow": 17
+    },
+    {
+      "taskId": "BLS-19",
+      "environment": "Amaze",
+      "team": "Search&AI",
+      "service": "USO",
+      "title": "Phase1\n- search by text\n- search by product_id (api internal)\n- search by image",
+      "uatDetail": "4 Sep",
+      "productionDetail": "Mon 14 Sep (sp 18)",
+      "status": "Deploy prod done",
+      "remark": "integrate \nsp 20 product\nsp 19 titan\n\nintregrate start sp 21++\n(related product & image)\non DEV",
+      "sourceRow": 18
+    },
+    {
+      "taskId": "BLS-20",
+      "environment": "Amaze",
+      "team": "Search&AI",
+      "service": "USO",
+      "title": "Phase 2\n- sync data pipeline one time",
+      "uatDetail": "4 Sep",
+      "productionDetail": "",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 19
+    },
+    {
+      "taskId": "BLS-23",
+      "environment": "Amaze",
+      "team": "SSO",
+      "service": "SMS",
+      "title": "change api key",
+      "uatDetail": "4 Sep",
+      "productionDetail": "23-09-2026\n(HOT FIX)",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 21
+    },
+    {
+      "taskId": "BLS-37",
+      "environment": "Amaze",
+      "team": "Point engine",
+      "service": "Point",
+      "title": "change policy 7-11 (IN/OUT)",
+      "uatDetail": "",
+      "productionDetail": "Release Mon 28-09-2026",
+      "status": "Deploy prod done",
+      "remark": "",
+      "sourceRow": 22
+    },
+    {
+      "taskId": "BLS-24",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "Merge & test check stock async 1 worker to amaze\n+ fix race condition add product store",
+      "uatDetail": "7 Sep",
+      "productionDetail": "release extra sp19\ncore-company-service\nTag: v2.0.19-amaze\ncore-inventory-service\nTag: v2.0.19.4\ncore-inventory-check-stock-worker-api\nTag: v2.0.19.4",
+      "status": "Deploy prod done",
+      "remark": "EA pls check deploy trigger deploy worker",
+      "sourceRow": 23
+    },
+    {
+      "taskId": "BLS-36",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "design partition for table products (provide api for qa)",
+      "uatDetail": "",
+      "productionDetail": "after sp 22 \nneed to talk and test",
+      "status": "Cancel",
+      "remark": "",
+      "sourceRow": 24
+    },
+    {
+      "taskId": "BLS-13",
+      "environment": "Phoenix",
+      "team": "Promotion engine",
+      "service": "Promotion",
+      "title": "- improve performance 2 API \n(filter_promotion_by_product , query_product_badge)\n- new api warm cache\n- improve reserve using cache\n- n8n warm cache",
+      "uatDetail": "21 Sep",
+      "productionDetail": "(1)  03-07-2026 : FAIL\n(2)  18-08-2026 : FAIL\n\n Thu 29 Oct 2026",
+      "status": "Fail",
+      "remark": "waiting cf for deploy prod\n\nwe should have step for deploy plan\n1. config db only\n2. warm cache\n3. config redis only",
+      "sourceRow": 25
+    },
+    {
+      "taskId": "BLS-28",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "- Makro store polygon (lat,lon)\n- default store (ทำเพิ่ม)",
+      "uatDetail": "",
+      "productionDetail": "Release sp22\ncompany",
+      "status": "Testing",
+      "remark": "",
+      "sourceRow": 26
+    },
+    {
+      "taskId": "BLS-29",
+      "environment": "Amaze",
+      "team": "Search&AI",
+      "service": "USO",
+      "title": "- Add more key product type id & product group (search & data)\n- Log usage (search (daily) & data(batch))\n- Json s3 table (data)\n- UI only internal that's open on prod",
+      "uatDetail": "2 Oct",
+      "productionDetail": "Release sp22\nuso search & data",
+      "status": "In progress",
+      "remark": "",
+      "sourceRow": 27
+    },
+    {
+      "taskId": "BLS-30",
+      "environment": "Amaze",
+      "team": "SSO",
+      "service": "File",
+      "title": "New version api upload image v1 + v2",
+      "uatDetail": "",
+      "productionDetail": "(Tentative) Release sp22\nfile service",
+      "status": "Testing",
+      "remark": "",
+      "sourceRow": 28
+    },
+    {
+      "taskId": "BLS-14",
+      "environment": "Phoenix",
+      "team": "Promotion engine",
+      "service": "Promotion",
+      "title": "Release Promotion Phase 2 \n<golang 100%>",
+      "uatDetail": "28 Oct",
+      "productionDetail": "09 Nov 2026",
+      "status": "In progress",
+      "remark": "test process s3 again",
+      "sourceRow": 29
+    },
+    {
+      "taskId": "BLS-15",
+      "environment": "Phoenix",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "Release Companystore and Inventory service (golang)",
+      "uatDetail": "26 Oct",
+      "productionDetail": "8/24/2026 : FAIL\n\n09 Nov 2026",
+      "status": "Testing",
+      "remark": "- ขอไฟล์ phx มายิง process add product all store\n- EA pls check deploy trigger deploy worker\n\nON AWS",
+      "sourceRow": 30
+    },
+    {
+      "taskId": "BLS-16",
+      "environment": "Phoenix",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "api add_product_all_store",
+      "uatDetail": "26 Oct",
+      "productionDetail": "09 Nov 2026",
+      "status": "Testing",
+      "remark": "",
+      "sourceRow": 31
+    },
+    {
+      "taskId": "BLS-25",
+      "environment": "Phoenix",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "Get nearest store cal in pod and using cache redis\n+ n8n rebuild",
+      "uatDetail": "26 Oct",
+      "productionDetail": "09 Nov 2026",
+      "status": "Testing",
+      "remark": "",
+      "sourceRow": 35
+    },
+    {
+      "taskId": "BLS-21",
+      "environment": "Amaze",
+      "team": "SSO",
+      "service": "Authorization",
+      "title": "- connect opa\n- api for frontend (need more discuss)",
+      "uatDetail": "",
+      "productionDetail": "no timeline",
+      "status": "Waiting for deploy",
+      "remark": "",
+      "sourceRow": 36
+    },
+    {
+      "taskId": "BLS-22",
+      "environment": "Amaze",
+      "team": "SSO",
+      "service": "Authentication",
+      "title": "- new api for check permission\n- on board api",
+      "uatDetail": "",
+      "productionDetail": "no timeline",
+      "status": "Waiting for deploy",
+      "remark": "",
+      "sourceRow": 37
+    },
+    {
+      "taskId": "BLS-31",
+      "environment": "Phoenix",
+      "team": "Promotion engine",
+      "service": "Promotion",
+      "title": "Process S3 batch create/update",
+      "uatDetail": "",
+      "productionDetail": "",
+      "status": "Ready to test",
+      "remark": "",
+      "sourceRow": 38
+    },
+    {
+      "taskId": "BLS-32",
+      "environment": "Phoenix",
+      "team": "Promotion engine",
+      "service": "Promotion",
+      "title": "Webhook alert outbox failed",
+      "uatDetail": "",
+      "productionDetail": "",
+      "status": "Ready to test",
+      "remark": "",
+      "sourceRow": 39
+    },
+    {
+      "taskId": "BLS-33",
+      "environment": "Phoenix",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "Improve process S3 Async Process to Kafka Worker",
+      "uatDetail": "",
+      "productionDetail": "",
+      "status": "In progress",
+      "remark": "",
+      "sourceRow": 40
+    },
+    {
+      "taskId": "BLS-34",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "Improve process S3 Async Process to Kafka Worker",
+      "uatDetail": "",
+      "productionDetail": "",
+      "status": "In progress",
+      "remark": "",
+      "sourceRow": 41
+    },
+    {
+      "taskId": "BLS-35",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "- Fix add product store clear cache all store\n- Fix race condition db read & write (com & inv)\n- Fix redis stock cache clear cache product all store",
+      "uatDetail": "16 Oct",
+      "productionDetail": "Release sp21\ncompany & inventory\n\nPostpone sp23",
+      "status": "Ready to test",
+      "remark": "",
+      "sourceRow": 42
+    },
+    {
+      "taskId": "BLS-17",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "Improve kafka 7deli",
+      "uatDetail": "",
+      "productionDetail": "Release sp21\ncompany & inventory\n\nPostpone sp23",
+      "status": "Testing",
+      "remark": "trigger cron for update data",
+      "sourceRow": 43
+    },
+    {
+      "taskId": "BLS-18",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "api add_product_all_store",
+      "uatDetail": "",
+      "productionDetail": "Release sp21\ncompany & inventory\n\nPostpone sp23",
+      "status": "Ready to test",
+      "remark": "",
+      "sourceRow": 44
+    },
+    {
+      "taskId": "BLS-41",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "R4m",
+      "title": "Release R4M go",
+      "uatDetail": "",
+      "productionDetail": "Release sp23\nr4m go",
+      "status": "Testing",
+      "remark": "",
+      "sourceRow": 48
+    },
+    {
+      "taskId": "BLS-39",
+      "environment": "Amaze",
+      "team": "Search&AI",
+      "service": "USO",
+      "title": "Cache search and cursor pagination",
+      "uatDetail": "",
+      "productionDetail": "Release sp23\nuso search",
+      "status": "In progress",
+      "remark": "",
+      "sourceRow": 49
+    },
+    {
+      "taskId": "BLS-40",
+      "environment": "Amaze",
+      "team": "Search&AI",
+      "service": "USO",
+      "title": "Consume update status product",
+      "uatDetail": "",
+      "productionDetail": "Release sp23\nuso data",
+      "status": "In progress",
+      "remark": "",
+      "sourceRow": 50
+    },
+    {
+      "taskId": "BLS-27",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "Get nearest store cal in pod and using cache redis\n+ n8n rebuild",
+      "uatDetail": "",
+      "productionDetail": "Release sp22\ncompany & n8n\n\nPostpone sp24",
+      "status": "Testing",
+      "remark": "",
+      "sourceRow": 51
+    },
+    {
+      "taskId": "BLS-38",
+      "environment": "Amaze",
+      "team": "Core Com (HPC)",
+      "service": "Company + Inventory",
+      "title": "Cut off seller 1-3 to use go",
+      "uatDetail": "",
+      "productionDetail": "Release sp22\ncompany\n\nPostpone sp24",
+      "status": "To-Do",
+      "remark": "",
+      "sourceRow": 52
+    }
+  ],
+  "deployments": [
+    {
+      "taskId": "BLS-26",
+      "sprint": "SP18",
+      "environment": "Phoenix",
+      "type": "prod",
+      "plannedDateLabel": "4 Sep 2026",
+      "detail": "Prod 10 SEP\n\ndeploy sp18\npromotion",
+      "sourceColumn": 34
+    },
+    {
+      "taskId": "BLS-19",
+      "sprint": "SP19",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "7 Sep 2026",
+      "detail": "Prod 14 SEP\n\ndeploy sp18\nuso",
+      "sourceColumn": 35
+    },
+    {
+      "taskId": "BLS-20",
+      "sprint": "SP19",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "7 Sep 2026",
+      "detail": "Prod 14 SEP\n\ndeploy sp18\nuso",
+      "sourceColumn": 35
+    },
+    {
+      "taskId": "BLS-23",
+      "sprint": "SP19",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "7 Sep 2026",
+      "detail": "Prod 23 SEP\n\ndeploy sp19\nc3",
+      "sourceColumn": 35
+    },
+    {
+      "taskId": "BLS-37",
+      "sprint": "SP20",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "21 Sep 2026",
+      "detail": "Prod 28 SEP\n\ndeploy sp19\npoint",
+      "sourceColumn": 37
+    },
+    {
+      "taskId": "BLS-24",
+      "sprint": "SP20",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "2 Oct 2026",
+      "detail": "Prod 5 OCT\n\ndeploy sp19\ninventory",
+      "sourceColumn": 38
+    },
+    {
+      "taskId": "BLS-13",
+      "sprint": "SP17",
+      "environment": "Phoenix",
+      "type": "prod",
+      "plannedDateLabel": "21 Aug 2026",
+      "detail": "18 AUG\n\ndeploy extra\npromotion",
+      "sourceColumn": 32
+    },
+    {
+      "taskId": "BLS-13",
+      "sprint": "SP22",
+      "environment": "Phoenix",
+      "type": "prod",
+      "plannedDateLabel": "30 Oct 2026",
+      "detail": "Prod 29 OCT\n\ndeploy sp22\npromotion",
+      "sourceColumn": 42
+    },
+    {
+      "taskId": "BLS-28",
+      "sprint": "SP23",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "2 Nov 2026",
+      "detail": "Prod 9 Nov\n\ndeploy sp22\ncompany",
+      "sourceColumn": 43
+    },
+    {
+      "taskId": "BLS-29",
+      "sprint": "SP23",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "2 Nov 2026",
+      "detail": "Prod 9 NOV\n\ndeploy sp22\nsearch & data",
+      "sourceColumn": 43
+    },
+    {
+      "taskId": "BLS-30",
+      "sprint": "SP23",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "2 Nov 2026",
+      "detail": "Prod 9 NOV\n\ndeploy sp22\nfile service",
+      "sourceColumn": 43
+    },
+    {
+      "taskId": "BLS-14",
+      "sprint": "SP23",
+      "environment": "Phoenix",
+      "type": "prod",
+      "plannedDateLabel": "2 Nov 2026",
+      "detail": "Prod 9 Nov\n\ndeploy sp22\npromotion",
+      "sourceColumn": 43
+    },
+    {
+      "taskId": "BLS-15",
+      "sprint": "SP18",
+      "environment": "Phoenix",
+      "type": "prod",
+      "plannedDateLabel": "24 Aug 2026",
+      "detail": "24 AUG\n\ndeploy sp17 \ncompany & inventory phoenix",
+      "sourceColumn": 33
+    },
+    {
+      "taskId": "BLS-15",
+      "sprint": "SP23",
+      "environment": "Phoenix",
+      "type": "prod",
+      "plannedDateLabel": "2 Nov 2026",
+      "detail": "Prod 9 Nov\n\ndeploy sp21\ncompany & inventory phoenix",
+      "sourceColumn": 43
+    },
+    {
+      "taskId": "BLS-25",
+      "sprint": "SP23",
+      "environment": "Phoenix",
+      "type": "prod",
+      "plannedDateLabel": "2 Nov 2026",
+      "detail": "Prod 9 NOV\ndeploy sp21\nn8n",
+      "sourceColumn": 43
+    },
+    {
+      "taskId": "BLS-35",
+      "sprint": "SP24",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "16 Nov 2026",
+      "detail": "Prod 23 NOV\n\ndeploy sp23 \ncompany & inventory amaze",
+      "sourceColumn": 45
+    },
+    {
+      "taskId": "BLS-17",
+      "sprint": "SP24",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "16 Nov 2026",
+      "detail": "Prod 23 NOV\n\ndeploy sp23 \ncompany & inventory amaze",
+      "sourceColumn": 45
+    },
+    {
+      "taskId": "BLS-18",
+      "sprint": "SP24",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "16 Nov 2026",
+      "detail": "Prod 23 NOV\n\ndeploy sp23\ncompany & inventory amaze",
+      "sourceColumn": 45
+    },
+    {
+      "taskId": "BLS-41",
+      "sprint": "SP24",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "16 Nov 2026",
+      "detail": "Prod 23 NOV\n\ndeploy sp23\nr4m go",
+      "sourceColumn": 45
+    },
+    {
+      "taskId": "BLS-39",
+      "sprint": "SP24",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "16 Nov 2026",
+      "detail": "Prod 23 NOV\n\ndeploy sp23\nsearch",
+      "sourceColumn": 45
+    },
+    {
+      "taskId": "BLS-40",
+      "sprint": "SP24",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "16 Nov 2026",
+      "detail": "Prod 23 NOV\n\ndeploy sp23\ndata",
+      "sourceColumn": 45
+    },
+    {
+      "taskId": "BLS-27",
+      "sprint": "SP25",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "30 Nov 2026",
+      "detail": "Prod 8 Dec\n\ndeploy sp22\ncompany & n8n",
+      "sourceColumn": 47
+    },
+    {
+      "taskId": "BLS-38",
+      "sprint": "SP25",
+      "environment": "Amaze",
+      "type": "prod",
+      "plannedDateLabel": "30 Nov 2026",
+      "detail": "Prod 8 Dec\n\ndeploy sp22\ncompany",
+      "sourceColumn": 47
+    }
+  ],
+  "warnings": [],
+  "duplicates": [
+    {
+      "row": 20,
+      "taskId": "BLS-26"
+    }
+  ]
+}

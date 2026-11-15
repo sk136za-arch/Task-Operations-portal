@@ -1,0 +1,141 @@
+import { eq } from "drizzle-orm";
+import { getDb } from "@/db";
+import { auditLogs, users } from "@/db/schema";
+import { requireRole } from "@/lib/authz";
+import { userInput } from "@/lib/validation";
+export async function GET() {
+  const auth = await requireRole(["admin"]);
+  if ("error" in auth) return auth.error;
+  return Response.json(await getDb().select().from(users));
+}
+export async function POST(request: Request) {
+  const auth = await requireRole(["admin"]);
+  if ("error" in auth) return auth.error;
+  const parsed = userInput.safeParse(await request.json());
+  if (!parsed.success)
+    return Response.json(
+      { error: "Invalid user", issues: parsed.error.flatten() },
+      { status: 400 },
+    );
+  const db = getDb(),
+    now = new Date().toISOString(),
+    email = parsed.data.email.toLowerCase();
+  const [saved] = await db
+    .insert(users)
+    .values({
+      id: `pending:${email}`,
+      email,
+      displayName: parsed.data.displayName,
+      role: parsed.data.role,
+      active: parsed.data.active,
+      grantedBy: auth.principal.identity.email,
+      grantedAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: users.email,
+      set: {
+        displayName: parsed.data.displayName,
+        role: parsed.data.role,
+        active: parsed.data.active,
+        grantedBy: auth.principal.identity.email,
+        updatedAt: now,
+      },
+    })
+    .returning();
+  await db
+    .insert(auditLogs)
+    .values({
+      actorId: auth.principal.identity.userId,
+      actorEmail: auth.principal.identity.email,
+      action: "grant_access",
+      entityType: "user",
+      entityId: email,
+      afterJson: JSON.stringify(saved),
+      createdAt: now,
+    });
+  return Response.json(saved, { status: 201 });
+}
+export async function PATCH(request: Request) {
+  const auth = await requireRole(["admin"]);
+  if ("error" in auth) return auth.error;
+  const body = await request.json(),
+    parsed = userInput.safeParse(body);
+  if (!parsed.success)
+    return Response.json({ error: "Invalid user" }, { status: 400 });
+  const db = getDb(),
+    email = parsed.data.email.toLowerCase(),
+    [before] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+  if (!before) return Response.json({ error: "Not found" }, { status: 404 });
+  if (
+    email === "sk136za@gmail.com" &&
+    (!parsed.data.active || parsed.data.role !== "admin")
+  )
+    return Response.json(
+      { error: "Bootstrap admin cannot be disabled or demoted" },
+      { status: 400 },
+    );
+  const now = new Date().toISOString(),
+    [saved] = await db
+      .update(users)
+      .set({
+        ...parsed.data,
+        email,
+        updatedAt: now,
+        grantedBy: auth.principal.identity.email,
+      })
+      .where(eq(users.email, email))
+      .returning();
+  await db
+    .insert(auditLogs)
+    .values({
+      actorId: auth.principal.identity.userId,
+      actorEmail: auth.principal.identity.email,
+      action: "update_access",
+      entityType: "user",
+      entityId: email,
+      beforeJson: JSON.stringify(before),
+      afterJson: JSON.stringify(saved),
+      createdAt: now,
+    });
+  return Response.json(saved);
+}
+export async function DELETE(request: Request) {
+  const auth = await requireRole(["admin"]);
+  if ("error" in auth) return auth.error;
+  const email = new URL(request.url).searchParams
+    .get("email")
+    ?.trim()
+    .toLowerCase();
+  if (!email)
+    return Response.json({ error: "Email is required" }, { status: 400 });
+  if (email === "sk136za@gmail.com")
+    return Response.json(
+      { error: "Bootstrap admin cannot be deleted" },
+      { status: 400 },
+    );
+  const db = getDb(),
+    [before] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+  if (!before) return Response.json({ error: "Not found" }, { status: 404 });
+  await db.delete(users).where(eq(users.email, email));
+  await db
+    .insert(auditLogs)
+    .values({
+      actorId: auth.principal.identity.userId,
+      actorEmail: auth.principal.identity.email,
+      action: "delete_access",
+      entityType: "user",
+      entityId: email,
+      beforeJson: JSON.stringify(before),
+      createdAt: new Date().toISOString(),
+    });
+  return new Response(null, { status: 204 });
+}
