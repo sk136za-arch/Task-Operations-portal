@@ -1,7 +1,5 @@
-import { and, eq } from "drizzle-orm";
 import { getChatGPTUser } from "@/app/chatgpt-auth";
-import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { getDb, unwrap } from "@/db";
 export const ADMIN_EMAIL = "sk136za@gmail.com";
 export type Role = "admin" | "editor" | "viewer";
 export async function currentPrincipal() {
@@ -9,11 +7,9 @@ export async function currentPrincipal() {
   if (!identity) return null;
   const db = getDb();
   const email = identity.email.toLowerCase();
-  const [record] = await db
-    .select()
-    .from(users)
-    .where(and(eq(users.email, email), eq(users.active, true)))
-    .limit(1);
+  const record = unwrap(
+    await db.from("users").select("role").eq("email", email).eq("active", true).maybeSingle(),
+  );
   return record
     ? { identity, role: record.role as Role }
     : { identity, role: null };

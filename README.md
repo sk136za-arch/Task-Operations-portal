@@ -1,109 +1,140 @@
 # Task Operations Portal
 
-Internal dashboard for managing tasks, deployments, imports, and operational timelines. The app is built with React, Vinext/Vite, Cloudflare Workers, and Cloudflare D1.
+Internal dashboard for tasks, deployments, imports, and operational timelines. The application uses React, Vinext/Vite, Cloudflare Workers, and **Supabase PostgreSQL**.
 
-## What you need
+## Prerequisites
 
-- [Node.js](https://nodejs.org/) **22.13 or newer** (`node --version` to check)
-- npm (bundled with Node.js)
+- [Node.js](https://nodejs.org/) 22.13 or newer
+- npm (included with Node.js)
 - Git
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) running locally
+- A Supabase project (needed only for production deployment)
 
-No `.env` file, cloud credentials, or external database is needed for local development. The application uses a local Cloudflare D1 database stored under `.wrangler/state`.
+## Build and test locally
 
-## First-time setup
+### 1. Start an isolated local Supabase stack
 
-From the project directory, install the exact package versions locked in `package-lock.json`:
+The local workflow uses Docker so that test data never reaches production. Start Docker Desktop first, then run:
+
+```powershell
+npx supabase@latest start
+```
+
+The command starts local Postgres, Auth, Storage, and related Supabase services. It prints a local API URL and a `service_role` key; keep the terminal output available.
+
+### 2. Configure the local app environment
+
+Copy the environment template:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Set the local values printed by `supabase start` (the usual API URL is `http://127.0.0.1:54321`):
+
+```env
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_SECRET_KEY=<local-service_role-key-from-supabase-start>
+```
+
+You may use the equivalent `SUPABASE_SERVICE_ROLE_KEY` variable name instead. Use the **service_role** key printed by `supabase start`, not the anon key.
+
+Never commit `.env.local`, expose `SUPABASE_SECRET_KEY` to browser code, or prefix it with `NEXT_PUBLIC_`.
+
+### 3. Create the local schema
+
+Apply the tracked migration to Docker's local Postgres:
+
+```powershell
+npx supabase@latest db push --local
+```
+
+The migration at [`supabase/migrations/20261116000000_initial_schema.sql`](supabase/migrations/20261116000000_initial_schema.sql) creates all tables, indexes, RLS settings, and the bootstrap administrator in the local Docker database.
+
+### 4. Install dependencies
 
 ```powershell
 npm ci
 ```
 
-Build once to generate the local Wrangler configuration:
-
-```powershell
-npm run build
-```
-
-Create the local D1 schema by applying the migrations below **in order**. Run each command once for a new local database.
-
-```powershell
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_young_zzzax.sql
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0001_long_energizer.sql
-```
-
-The first migration creates the tables and initial administrator record. Without these commands, opening the app fails with `D1_ERROR: no such table: users`.
-
-## Run the app
+### 5. Start development mode
 
 ```powershell
 npm run dev
 ```
 
-Open the local address printed by Vinext, usually [http://127.0.0.1:5173](http://127.0.0.1:5173). Stop the server with `Ctrl+C`.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173), or the local address printed by Vinext. The app reads and writes only to the Docker-hosted Supabase database.
 
-Local development simulates ChatGPT sign-in. The default local account is `seedy@sites.test`, so the first visit redirects through the local sign-in route automatically.
-
-## Local access control
-
-The initial database migration grants admin access only to `sk136za@gmail.com`. The simulated local account (`seedy@sites.test`) therefore displays **Access pending** after the schema has been created. To test the complete dashboard locally, grant that account an admin role:
+The complete local run sequence is therefore:
 
 ```powershell
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --command "INSERT INTO users (id, email, display_name, role, active, granted_by, granted_at, updated_at) VALUES ('local:seedy','seedy@sites.test','Seedy','admin',1,'local setup',datetime('now'),datetime('now'));"
-```
-
-Refresh the browser after running the command. For another local user, replace the ID, email, and display name in the SQL statement.
-
-## Day-to-day workflow
-
-After the first-time setup, use:
-
-```powershell
+npm ci
+Copy-Item .env.example .env.local
+npx supabase@latest start
+# Fill .env.local with the URL and service_role key printed above
+npx supabase@latest db push --local
 npm run dev
 ```
 
-You do not need to reinstall packages or rerun migrations unless you deleted `.wrangler/state`, changed dependencies, or added a new migration.
-
-When a new migration is added, build again and apply only that new migration to your local database.
-
-## Validate and preview a production build
+### 6. Validate the production build locally
 
 ```powershell
 npm run build
 npm run start
 ```
 
-`npm run start` serves the already-built Worker locally via Wrangler. It does not deploy anything.
+`npm run start` serves the built Worker on your machine while retaining the same Supabase connection configuration from `.env.local`.
 
-Other useful commands:
+Additional commands:
 
 ```powershell
 npm run lint
 npm run db:generate
 ```
 
-`npm run db:generate` creates Drizzle migration files after changes to `db/schema.ts`; review generated SQL before applying it.
+## Deploy to production
+
+1. Validate locally:
+
+   ```powershell
+   npm ci
+   npm run build
+   ```
+
+2. Apply any new SQL migrations to the production Supabase project:
+
+   ```powershell
+   npx supabase@latest login
+   npx supabase@latest link --project-ref <production-project-ref>
+   npx supabase@latest db push --remote
+   ```
+
+3. In the Cloudflare Sites environment settings, add these **server-side runtime variables**:
+
+   ```env
+   SUPABASE_URL=https://<your-project-ref>.supabase.co
+   SUPABASE_SECRET_KEY=sb_secret_<your-server-only-secret>
+   ```
+
+4. Commit and push the source revision, then publish through the Sites workflow configured by `.openai/hosting.json`.
+
+Do not place credentials in `.openai/hosting.json`, source files, or client-side environment variables.
 
 ## Troubleshooting
 
-| Symptom | Cause and solution |
+| Symptom | Solution |
 | --- | --- |
-| `D1_ERROR: no such table: users` | The local schema is missing. Follow the two migration commands in **First-time setup**. |
-| **Access pending** | The signed-in user has no active role. Add the local test user with the SQL command in **Local access control**. |
-| `npm ci` fails | Verify Node.js is version 22.13 or later, then delete only `node_modules` and run `npm ci` again. |
-| Port 5173 is already in use | Stop the other development server, or run `npm run dev -- --port 5174`. |
-| Changes are not reflected | Stop `npm run dev`, start it again, and refresh the browser. |
+| `Supabase is not configured` | Add `SUPABASE_URL` and `SUPABASE_SECRET_KEY` to `.env.local`, then restart the server. |
+| Database table is missing | For local use, run `npx supabase@latest db push --local`; use `--remote` only for the intended hosted project. |
+| `internal error; reference = ...` when loading the app | Ensure `.env.local` uses the `service_role` key, then apply the newest migration with `npx supabase@latest db push --local` and restart `npm run dev`. |
+| `Access pending` | Add the signed-in user's email to the `users` table with an active role. |
+| Port 5173 is already in use | Stop the other server or use `npm run dev -- --port 5174`. |
 
 ## Project structure
 
-- `app/` — dashboard pages, styling, and API routes
-- `components/dashboard/` — dashboard UI components
-- `db/` — Drizzle database connection and schema
-- `drizzle/` — D1 migrations and migration metadata
-- `lib/` — authorization, validation, CSV, and integration utilities
-- `public/` — static assets
+- `app/` — pages, server routes, and styles
+- `components/dashboard/` — dashboard UI
+- `db/` — server-only Supabase client and data types
+- `supabase/migrations/` — PostgreSQL database schema migrations
 - `worker/` — Cloudflare Worker entry point
-- `.openai/hosting.json` — Sites deployment configuration and D1 binding (`DB`)
-
-## Data and local files
-
-Local database data and framework state live in ignored directories such as `.wrangler/`, `.vinext/`, `.next/`, and `dist/`. They are not committed. Do not put secrets in source control.
+- `.openai/hosting.json` — Sites hosting configuration

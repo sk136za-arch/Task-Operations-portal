@@ -46,3 +46,7 @@ yarn-error.log*
 
 # folder for local development of the project
 skill
+
+# Supabase CLI runtime state; it may contain local service keys.
+/supabase/.temp/
+/supabase/.branches/
