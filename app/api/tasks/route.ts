@@ -1,8 +1,27 @@
 import { camelize, getDb, unwrap } from "@/db";
-import { requireRole } from "@/lib/authz";
+import { requireScopedProject } from "@/lib/project-route";
 import { taskInput } from "@/lib/validation";
-export async function GET(request: Request) { const auth = await requireRole(["admin", "editor", "viewer"]); if ("error" in auth) return auth.error; const q = new URL(request.url).searchParams.get("q")?.trim(); let query = getDb().from("tasks").select().order("updated_at", { ascending: false }).limit(500); if (q) query = query.or(`task_id.ilike.%${q}%,title.ilike.%${q}%,service.ilike.%${q}%`); return Response.json(camelize(unwrap(await query))); }
+
+export async function GET(request: Request) {
+  const auth = await requireScopedProject(request, ["admin", "editor", "viewer"]);
+  if ("error" in auth) return auth.error;
+  const q = new URL(request.url).searchParams.get("q")?.trim();
+  let query = getDb().from("tasks").select().eq("project_id", auth.projectId).order("updated_at", { ascending: false }).limit(500);
+  if (q) query = query.or(`task_id.ilike.%${q}%,title.ilike.%${q}%,service.ilike.%${q}%`);
+  return Response.json(camelize(unwrap(await query)));
+}
+
 export async function POST(request: Request) {
- const auth = await requireRole(["admin", "editor"]); if ("error" in auth) return auth.error; const parsed = taskInput.omit({ taskId: true, revision: true }).safeParse(await request.json()); if (!parsed.success) return Response.json({ error: "Invalid task", issues: parsed.error.flatten() }, { status: 400 }); if (parsed.data.startDate && parsed.data.endDate && parsed.data.endDate < parsed.data.startDate) return Response.json({ error: "End date must be on or after start date" }, { status: 400 });
- const db=getDb(), now=new Date().toISOString(), temporaryId=`AUTO-${crypto.randomUUID()}`; const inserted=unwrap<any>(await db.from("tasks").insert({ task_id: temporaryId, environment: parsed.data.environment, team: parsed.data.team, service: parsed.data.service, title: parsed.data.title, start_date: parsed.data.startDate, end_date: parsed.data.endDate, uat_detail: parsed.data.uatDetail, production_detail: parsed.data.productionDetail, status: parsed.data.status, remark: parsed.data.remark, revision: 1, created_at: now, updated_at: now, updated_by: auth.principal.identity.email }).select().single()); const taskId=`BLS-${String(inserted.id).padStart(2,"0")}`; const created=unwrap<any>(await db.from("tasks").update({ task_id: taskId }).eq("id",inserted.id).select().single()); unwrap(await db.from("audit_logs").insert({ actor_id:auth.principal.identity.userId, actor_email:auth.principal.identity.email, action:"create", entity_type:"task", entity_id:taskId, after_json:JSON.stringify(created), created_at:now })); return Response.json(camelize(created),{status:201});
+  const auth = await requireScopedProject(request, ["admin", "editor"]);
+  if ("error" in auth) return auth.error;
+  const parsed = taskInput.omit({ taskId: true, revision: true }).safeParse(await request.json());
+  if (!parsed.success) return Response.json({ error: "Invalid task", issues: parsed.error.flatten() }, { status: 400 });
+  if (parsed.data.startDate && parsed.data.endDate && parsed.data.endDate < parsed.data.startDate)
+    return Response.json({ error: "End date must be on or after start date" }, { status: 400 });
+  const db = getDb(), now = new Date().toISOString(), temporaryId = `AUTO-${crypto.randomUUID()}`;
+  const inserted = unwrap<any>(await db.from("tasks").insert({ project_id: auth.projectId, task_id: temporaryId, environment: parsed.data.environment, team: parsed.data.team, service: parsed.data.service, title: parsed.data.title, start_date: parsed.data.startDate, end_date: parsed.data.endDate, uat_detail: parsed.data.uatDetail, production_detail: parsed.data.productionDetail, status: parsed.data.status, remark: parsed.data.remark, revision: 1, created_at: now, updated_at: now, updated_by: auth.principal.identity.email }).select().single());
+  const taskId = `BLS-${String(inserted.id).padStart(2, "0")}`;
+  const created = unwrap<any>(await db.from("tasks").update({ task_id: taskId }).eq("id", inserted.id).eq("project_id", auth.projectId).select().single());
+  unwrap(await db.from("audit_logs").insert({ project_id: auth.projectId, actor_id: auth.principal.identity.userId, actor_email: auth.principal.identity.email, action: "create", entity_type: "task", entity_id: taskId, after_json: JSON.stringify(created), created_at: now }));
+  return Response.json(camelize(created), { status: 201 });
 }

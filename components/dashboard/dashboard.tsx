@@ -166,7 +166,12 @@ export default function Dashboard({
   async function request(url: string, init: RequestInit) {
     setBusy(true);
     try {
-      const r = await fetch(url, init);
+      const target = new URL(url, window.location.origin);
+      if (target.pathname.startsWith("/api/tasks")) target.pathname = `/api/projects/${projectId}${target.pathname.slice(4)}`;
+      else if (target.pathname === "/api/admin/users") target.pathname = `/api/projects/${projectId}/members`;
+      else if (target.pathname === "/api/admin/settings") target.pathname = `/api/projects/${projectId}/settings`;
+      else if (target.pathname === "/api/admin/import") target.pathname = `/api/projects/${projectId}/seed-import`;
+      const r = await fetch(`${target.pathname}${target.search}`, init);
       const text = await r.text();
       const body = text ? JSON.parse(text) : {};
       if (!r.ok) throw new Error(body.error || "Request failed");
@@ -302,7 +307,7 @@ export default function Dashboard({
     setBusy(true);
     try {
       const response = await fetch(
-        `/api/tasks/${task.taskId}/complete-production`,
+        `/api/projects/${projectId}/tasks/${task.taskId}/complete-production`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -483,7 +488,7 @@ export default function Dashboard({
           </div>
           <div className="header-actions">
             {projectSettings}
-            <a className="secondary" href="/api/export/tasks.csv">
+            <a className="secondary" href={`/api/projects/${projectId}/export/tasks.csv`}>
               <Download />
               Export CSV
             </a>
@@ -775,8 +780,8 @@ export default function Dashboard({
           <section className="panel">
             <div className="access-requests"><PanelTitle title={`Access requests${accessRequests.length ? ` · ${accessRequests.length}` : ""}`} subtitle="Review people who asked to join this project." />{accessRequests.length ? accessRequests.map((item) => <div className="access-request" key={item.id}><div><b>{item.displayName || item.email}</b><small>{item.email} · Viewer access</small></div><div><button className="primary" disabled={busy} onClick={() => reviewAccessRequest(item.id, "approve")}>Approve</button><button className="secondary" disabled={busy} onClick={() => reviewAccessRequest(item.id, "reject")}>Reject</button></div></div>) : <p className="form-note">No pending access requests.</p>}</div>
             <PanelTitle
-              title="Workspace access"
-              subtitle="App roles take effect after the user has hosting access"
+              title="Project members"
+              subtitle="Manage roles and access for this project only."
             />
             <div className="user-list">
               {users.map((u) => (
@@ -811,13 +816,13 @@ export default function Dashboard({
                 </div>
               ))}
               <button className="add-user" onClick={() => setUserForm(true)}>
-                <Plus /> Add user by email
+                <Plus /> Add project member by email
               </button>
             </div>
             <div className="audit">
               <h3>Recent access activity</h3>
               {audits
-                .filter((a) => a.entityType === "user")
+                .filter((a) => a.entityType === "member")
                 .slice(0, 8)
                 .map((a) => (
                   <p key={a.id}>
@@ -1211,11 +1216,7 @@ export default function Dashboard({
       )}
       {(userForm || editingUser) && (
         <Modal
-          title={
-            editingUser
-              ? `Edit access · ${editingUser.email}`
-              : "Grant portal access"
-          }
+          title={editingUser ? `Edit project access · ${editingUser.email}` : "Add project member"}
           close={() => {
             setUserForm(false);
             setEditingUser(null);
@@ -1247,10 +1248,7 @@ export default function Dashboard({
                 values={["true", "false"]}
               />
             )}
-            <p className="form-note">
-              This controls the role inside the portal. Site hosting access must
-              also allow the same email.
-            </p>
+            <p className="form-note">This role applies only to the current project.</p>
             <button className="primary" disabled={busy}>
               {busy ? "Saving…" : editingUser ? "Save access" : "Grant access"}
             </button>
