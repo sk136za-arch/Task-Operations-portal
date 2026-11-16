@@ -2757,6 +2757,10 @@ tbody tr:hover {
   font-weight: 500;
   color: #929aaa;
 }
+.due-config > button {
+  align-self: start;
+  margin-top: 24px;
+}
 .due-swatch {
   width: 11px;
   height: 11px;
@@ -2782,6 +2786,7 @@ tbody tr:hover {
   }
   .due-config button {
     grid-column: 1/-1;
+    margin-top: 0;
   }
 }
 @media (max-width: 560px) {

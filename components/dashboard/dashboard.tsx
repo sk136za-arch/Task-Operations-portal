@@ -496,7 +496,7 @@ export default function Dashboard({
           </div>
         </header>
         {csvNotice && <p className="csv-notice" role="status">{csvNotice}</p>}
-        {tab !== "access" && tab !== "timeline" && (
+        {tab !== "access" && tab !== "timeline" && tab !== "config" && (
           <div className="filters">
             <label>
               <Search />
