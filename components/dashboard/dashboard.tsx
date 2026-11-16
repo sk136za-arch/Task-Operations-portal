@@ -45,6 +45,7 @@ export default function Dashboard({
   lookups,
   users,
   audits,
+  accessRequests,
   principal,
   projectId,
   signOutPath,
@@ -55,6 +56,7 @@ export default function Dashboard({
   lookups: Lookup[];
   users: User[];
   audits: Audit[];
+  accessRequests: Array<{ id: number; email: string; displayName: string; createdAt: string }>;
   principal: { email: string; name: string; role: string };
   projectId: string;
   signOutPath: string;
@@ -182,6 +184,9 @@ export default function Dashboard({
   }
   async function runImport() {
     await request("/api/admin/import", { method: "POST" });
+  }
+  async function reviewAccessRequest(requestId: number, action: "approve" | "reject") {
+    await request(`/api/projects/${projectId}/access-requests`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ requestId, action }) });
   }
   async function importCsv(mode: "insert" | "replace") {
     if (!csvFile) return;
@@ -768,6 +773,7 @@ export default function Dashboard({
         )}
         {tab === "access" && (
           <section className="panel">
+            <div className="access-requests"><PanelTitle title={`Access requests${accessRequests.length ? ` · ${accessRequests.length}` : ""}`} subtitle="Review people who asked to join this project." />{accessRequests.length ? accessRequests.map((item) => <div className="access-request" key={item.id}><div><b>{item.displayName || item.email}</b><small>{item.email} · Viewer access</small></div><div><button className="primary" disabled={busy} onClick={() => reviewAccessRequest(item.id, "approve")}>Approve</button><button className="secondary" disabled={busy} onClick={() => reviewAccessRequest(item.id, "reject")}>Reject</button></div></div>) : <p className="form-note">No pending access requests.</p>}</div>
             <PanelTitle
               title="Workspace access"
               subtitle="App roles take effect after the user has hosting access"
