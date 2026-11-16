@@ -47,6 +47,7 @@ export default function Dashboard({
   audits,
   principal,
   signOutPath,
+  projectSettings,
 }: {
   tasks: Task[];
   deployments: Deployment[];
@@ -55,6 +56,7 @@ export default function Dashboard({
   audits: Audit[];
   principal: { email: string; name: string; role: string };
   signOutPath: string;
+  projectSettings?: React.ReactNode;
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -471,6 +473,7 @@ export default function Dashboard({
             </p>
           </div>
           <div className="header-actions">
+            {projectSettings}
             <a className="secondary" href="/api/export/tasks.csv">
               <Download />
               Export CSV

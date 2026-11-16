@@ -20,6 +20,118 @@ select {
 .app-shell {
   min-height: 100vh;
 }
+.project-chooser {
+  min-height: 100vh;
+  padding: 28px;
+  background: radial-gradient(circle at 12% 10%, #e7f5ce 0, transparent 31%), #f4f5f7;
+}
+.project-chooser-shell {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+}
+.project-chooser-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: clamp(50px, 10vh, 112px);
+}
+.project-chooser-brand,
+.project-chooser-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #1b3529;
+  font-size: 14px;
+  font-weight: 800;
+}
+.project-chooser-mark,
+.project-chooser-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: #10291f;
+  color: #d7f94e;
+  font-size: 12px;
+  font-weight: 900;
+}
+.project-chooser-avatar {
+  border-radius: 50%;
+  background: #d7f94e;
+  color: #173024;
+}
+.project-chooser-intro {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  max-width: 660px;
+  margin-bottom: 34px;
+}
+.project-chooser-icon,
+.project-card-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 15px;
+  background: #d7f94e;
+  color: #163124;
+}
+.project-chooser-icon { width: 58px; height: 58px; }
+.project-chooser-icon svg { width: 27px; }
+.project-chooser-intro h1 {
+  margin: 0;
+  color: #15221d;
+  font-size: clamp(30px, 5vw, 44px);
+  letter-spacing: -0.045em;
+}
+.project-chooser-intro > div > p:last-child {
+  max-width: 550px;
+  margin: 8px 0 0;
+  color: #6d7c75;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 16px;
+}
+.project-card {
+  display: flex;
+  min-height: 235px;
+  flex-direction: column;
+  padding: 22px;
+  border: 1px solid #dce5df;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(21, 48, 36, .06);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.project-card:hover { transform: translateY(-3px); border-color: #bad5c4; box-shadow: 0 16px 34px rgba(21, 48, 36, .11); }
+.project-card-top { display: flex; align-items: center; justify-content: space-between; }
+.project-card-icon { width: 42px; height: 42px; border-radius: 12px; }
+.project-card-icon svg { width: 20px; }
+.project-role,.project-status { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 5px 9px; background: #e7f5ce; color: #41600f; font-size: 12px; font-weight: 800; text-transform: capitalize; }
+.project-role svg { width: 13px; }
+.project-status { background: #f0f2f4; color: #78847e; }
+.project-status.pending { background: #fff3d7; color: #a66b09; }
+.project-status.rejected { background: #ffe7e7; color: #aa3d3d; }
+.project-card h2 { margin: 20px 0 7px; color: #182b22; font-size: 20px; letter-spacing: -.025em; }
+.project-card > p { margin: 0; color: #75827d; font-size: 14px; line-height: 1.55; }
+.project-card-footer { margin-top: auto; padding-top: 22px; }
+.project-open,.project-request { display: inline-flex; width: 100%; min-height: 42px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 9px; background: #10291f; color: #fff; font: inherit; font-size: 14px; font-weight: 800; text-decoration: none; cursor: pointer; }
+.project-open:hover,.project-request:hover { background: #1c3c30; }
+.project-open svg { width: 16px; transition: transform .15s ease; }
+.project-open:hover svg { transform: translateX(3px); }
+.project-request { border: 1px solid #b7cec0; background: #f7fbf8; color: #214534; }
+.project-request:hover { background: #eaf5ed; }
+.project-request:disabled { cursor: wait; opacity: .65; }
+.project-empty { padding: 52px; border: 1px dashed #b9c9c0; border-radius: 18px; color: #60736a; text-align: center; }
+.project-empty svg { width: 34px; height: 34px; color: #79a08a; }
+.project-empty h2 { margin: 14px 0 4px; color: #1b3529; }
+.project-empty p { margin: 0; }
+@media (max-width: 600px) { .project-chooser { padding: 18px; } .project-chooser-header { margin-bottom: 50px; } .project-chooser-user > span:last-child { display: none; } .project-chooser-intro { align-items: flex-start; } }
 .side {
   position: fixed;
   inset: 0 auto 0 0;
