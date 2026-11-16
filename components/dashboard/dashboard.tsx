@@ -781,25 +781,18 @@ export default function Dashboard({
                     <small>{u.email}</small>
                   </span>
                   <i className={`badge ${u.active ? "green" : "red"}`}>
-                    {u.active ? u.role : "disabled"}
+                    {u.isSuperAdmin ? "super admin" : u.active ? u.role : "disabled"}
                   </i>
-                  <span className="access-actions">
+                  {!u.isSuperAdmin && <span className="access-actions">
                     <button
                       aria-label={`Edit ${u.email}`}
                       onClick={() => setEditingUser(u)}
                     >
                       <Pencil /> Edit
                     </button>
-                    {u.email !== "sk136za@gmail.com" && (
-                      <button
-                        className="danger"
-                        aria-label={`Delete ${u.email}`}
-                        onClick={() => deleteUser(u)}
-                      >
-                        <Trash2 /> Delete
-                      </button>
-                    )}
+                    <button className="danger" aria-label={`Delete ${u.email}`} onClick={() => deleteUser(u)}><Trash2 /> Delete</button>
                   </span>
+                  }
                 </div>
               ))}
               <button className="add-user" onClick={() => setUserForm(true)}>

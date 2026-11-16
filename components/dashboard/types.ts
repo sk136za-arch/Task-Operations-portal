@@ -42,6 +42,7 @@ export type User = {
   displayName: string;
   role: string;
   active: boolean;
+  isSuperAdmin?: boolean;
 };
 
 export type Audit = {
