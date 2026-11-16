@@ -46,6 +46,7 @@ export default function Dashboard({
   users,
   audits,
   principal,
+  projectId,
   signOutPath,
   projectSettings,
 }: {
@@ -55,6 +56,7 @@ export default function Dashboard({
   users: User[];
   audits: Audit[];
   principal: { email: string; name: string; role: string };
+  projectId: string;
   signOutPath: string;
   projectSettings?: React.ReactNode;
 }) {
@@ -188,6 +190,7 @@ export default function Dashboard({
       const data = new FormData();
       data.set("file", csvFile);
       data.set("mode", mode);
+      data.set("projectId", projectId);
       const response = await fetch("/api/import/tasks", { method: "POST", body: data });
       const body = await response.json();
       if (!response.ok) {
