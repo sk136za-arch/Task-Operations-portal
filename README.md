@@ -120,14 +120,18 @@ npm run lint
    npx supabase@latest db push --remote
    ```
 
-3. In the Cloudflare Sites environment settings, add these **server-side runtime variables**:
+3. Configure the hosting environment with these **server-side runtime variables**:
 
    ```env
    SUPABASE_URL=https://<your-project-ref>.supabase.co
    SUPABASE_SECRET_KEY=sb_secret_<your-server-only-secret>
+   ADMIN_EMAILS=admin1@example.com,admin2@example.com
    ```
 
-4. Commit and push the source revision, then publish through the Sites workflow configured by `.openai/hosting.json`.
+4. Publish using one of the supported hosts:
+
+   - **Cloudflare Sites:** commit and push the source revision, then publish through the Sites workflow configured by `.openai/hosting.json`.
+   - **Vercel:** import the Git repository. `vercel.json` runs `npm run build`; the Vercel-only build uses Nitro and emits the required `.vercel/output` deployment bundle. In Vercel Project Settings, add the three variables above for the Production environment, then deploy. Do not set an Output Directory manually.
 
 Do not place credentials in `.openai/hosting.json`, source files, or client-side environment variables.
 
