@@ -20,6 +20,7 @@ Operational data APIs now require an authorized project scope; dashboard actions
 - Added migration `20261116000006_atomic_project_access_requests.sql` for atomic request, lookup, threshold, seed-import, and production-completion operations.
 - Replaced global user management with project membership management in the dashboard.
 - Improved chooser and super-admin project UI accessibility and mobile behavior.
+- Added a shared full-screen loading dialog for all client-side API mutations, with concurrent-request tracking and operation labels.
 
 # Architecture Decisions
 
@@ -57,7 +58,7 @@ Operational data APIs now require an authorized project scope; dashboard actions
 
 # Files Changed
 
-- Project API routes, dashboard, chooser/admin components, stylesheet, project route helper, and Supabase migration.
+- Project API routes, dashboard, chooser/admin components, loading provider, stylesheet, project route helper, and Supabase migration.
 
 # Final Status
 

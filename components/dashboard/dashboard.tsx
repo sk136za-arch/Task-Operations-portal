@@ -26,6 +26,7 @@ import { TaskTable } from "./task-table";
 import { ConfigPanel } from "./configuration";
 import { TimelineBoard } from "./timeline-board";
 import { Field, Modal, SelectField } from "./dialogs";
+import { useLoading } from "@/components/loading/loading-provider";
 
 import type { Audit, Deployment, Lookup, Principal, Task, User } from "./types";
 import {
@@ -63,6 +64,7 @@ export default function Dashboard({
   projectSettings?: React.ReactNode;
 }) {
   const router = useRouter();
+  const { runWithLoading } = useLoading();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [team, setTeam] = useState("all");
@@ -163,54 +165,45 @@ export default function Dashboard({
         {},
       ),
     ).sort((a, b) => b[1] - a[1]);
-  async function request(url: string, init: RequestInit) {
+  async function request(url: string, init: RequestInit, label = "Saving changes…") {
     setBusy(true);
     try {
-      const target = new URL(url, window.location.origin);
-      if (target.pathname.startsWith("/api/tasks")) target.pathname = `/api/projects/${projectId}${target.pathname.slice(4)}`;
-      else if (target.pathname === "/api/admin/users") target.pathname = `/api/projects/${projectId}/members`;
-      else if (target.pathname === "/api/admin/settings") target.pathname = `/api/projects/${projectId}/settings`;
-      else if (target.pathname === "/api/admin/import") target.pathname = `/api/projects/${projectId}/seed-import`;
-      const r = await fetch(`${target.pathname}${target.search}`, init);
-      const text = await r.text();
-      const body = text ? JSON.parse(text) : {};
-      if (!r.ok) throw new Error(body.error || "Request failed");
-      setTaskForm(null);
-      setDeploymentForm(null);
-      setUserForm(false);
-      setEditingUser(null);
-      setActive(null);
-      router.refresh();
-      setBusy(false);
+      await runWithLoading(label, async () => {
+        const target = new URL(url, window.location.origin);
+        if (target.pathname.startsWith("/api/tasks")) target.pathname = `/api/projects/${projectId}${target.pathname.slice(4)}`;
+        else if (target.pathname === "/api/admin/users") target.pathname = `/api/projects/${projectId}/members`;
+        else if (target.pathname === "/api/admin/settings") target.pathname = `/api/projects/${projectId}/settings`;
+        else if (target.pathname === "/api/admin/import") target.pathname = `/api/projects/${projectId}/seed-import`;
+        const r = await fetch(`${target.pathname}${target.search}`, init);
+        const text = await r.text();
+        const body = text ? JSON.parse(text) : {};
+        if (!r.ok) throw new Error(body.error || "Request failed");
+        setTaskForm(null); setDeploymentForm(null); setUserForm(false); setEditingUser(null); setActive(null);
+        router.refresh();
+      });
     } catch (e) {
       alert(e instanceof Error ? e.message : "Request failed");
-      setBusy(false);
-    }
+    } finally { setBusy(false); }
   }
   async function runImport() {
-    await request("/api/admin/import", { method: "POST" });
+    await request("/api/admin/import", { method: "POST" }, "Importing project data…");
   }
   async function reviewAccessRequest(requestId: number, action: "approve" | "reject") {
-    await request(`/api/projects/${projectId}/access-requests`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ requestId, action }) });
+    await request(`/api/projects/${projectId}/access-requests`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ requestId, action }) }, action === "approve" ? "Approving access…" : "Rejecting access…");
   }
   async function importCsv(mode: "insert" | "replace") {
     if (!csvFile) return;
     setBusy(true);
     try {
-      const data = new FormData();
-      data.set("file", csvFile);
-      data.set("mode", mode);
-      data.set("projectId", projectId);
-      const response = await fetch("/api/import/tasks", { method: "POST", body: data });
-      const body = await response.json();
-      if (!response.ok) {
-        const details = Array.isArray(body.issues) ? `\n${body.issues.join("\n")}` : "";
-        throw new Error(`${body.error || "Import failed"}${details}`);
-      }
-      setCsvNotice(`${mode === "replace" ? "Replaced" : "Added"} ${body.taskCount} tasks and ${body.deploymentCount} deployment plans.`);
-      setCsvImportOpen(false);
-      setCsvFile(null);
-      router.refresh();
+      await runWithLoading(mode === "replace" ? "Replacing project data…" : "Importing CSV…", async () => {
+        const data = new FormData();
+        data.set("file", csvFile); data.set("mode", mode); data.set("projectId", projectId);
+        const response = await fetch("/api/import/tasks", { method: "POST", body: data });
+        const body = await response.json();
+        if (!response.ok) { const details = Array.isArray(body.issues) ? `\n${body.issues.join("\n")}` : ""; throw new Error(`${body.error || "Import failed"}${details}`); }
+        setCsvNotice(`${mode === "replace" ? "Replaced" : "Added"} ${body.taskCount} tasks and ${body.deploymentCount} deployment plans.`);
+        setCsvImportOpen(false); setCsvFile(null); router.refresh();
+      });
     } catch (error) {
       alert(error instanceof Error ? error.message : "Import failed");
     } finally {
@@ -226,7 +219,7 @@ export default function Dashboard({
       method: editing ? "PATCH" : "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(data),
-    });
+    }, editing ? "Saving task…" : "Creating task…");
   }
   async function saveUser(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -240,7 +233,7 @@ export default function Dashboard({
         email: editingUser?.email || data.email,
         active: editing ? data.active === "true" : true,
       }),
-    });
+    }, editing ? "Saving project member…" : "Adding project member…");
   }
   async function saveSetting(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -249,7 +242,7 @@ export default function Dashboard({
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(data),
-    });
+    }, "Adding dropdown value…");
   }
   async function saveDueThresholds(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -262,7 +255,7 @@ export default function Dashboard({
         yellowDays: Number(data.yellowDays),
         grayDays: Number(data.grayDays),
       }),
-    });
+    }, "Saving urgency settings…");
   }
   async function saveDeployment(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -290,6 +283,7 @@ export default function Dashboard({
           actualDate: current?.actualDate ?? null,
         }),
       },
+      current ? "Saving deployment plan…" : "Adding deployment plan…",
     );
   }
   async function updateTaskStatus(task: Task, nextStatus: string) {
@@ -301,33 +295,23 @@ export default function Dashboard({
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...task, status: nextStatus }),
-    });
+    }, "Updating task status…");
   }
   async function completeProduction(task: Task, deploymentId?: number) {
     setBusy(true);
     try {
-      const response = await fetch(
-        `/api/projects/${projectId}/tasks/${task.taskId}/complete-production`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ revision: task.revision, deploymentId }),
-        },
-      );
-      const body = await response.json();
-      if (
-        response.status === 409 &&
-        body.code === "deployment_selection_required"
-      ) {
-        setCompletionChoice({ task, deployments: body.deployments });
-        setCompletionDeploymentId(null);
-        return;
-      }
-      if (!response.ok) throw new Error(body.error || "Request failed");
-      setCompletionChoice(null);
-      setCompletionDeploymentId(null);
-      setActive(null);
-      router.refresh();
+      await runWithLoading("Completing production deployment…", async () => {
+        const response = await fetch(
+          `/api/projects/${projectId}/tasks/${task.taskId}/complete-production`,
+          { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ revision: task.revision, deploymentId }) },
+        );
+        const body = await response.json();
+        if (response.status === 409 && body.code === "deployment_selection_required") {
+          setCompletionChoice({ task, deployments: body.deployments }); setCompletionDeploymentId(null); return;
+        }
+        if (!response.ok) throw new Error(body.error || "Request failed");
+        setCompletionChoice(null); setCompletionDeploymentId(null); setActive(null); router.refresh();
+      });
     } catch (error) {
       alert(error instanceof Error ? error.message : "Request failed");
       router.refresh();
@@ -354,6 +338,7 @@ export default function Dashboard({
           dateLabel,
         }),
       },
+      "Updating deployment date…",
     );
   }
   async function updateDeploymentResult(
@@ -367,6 +352,7 @@ export default function Dashboard({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ ...deployment, result }),
       },
+      "Updating deployment result…",
     );
   }
   async function deleteDeployment(deployment: Deployment) {
@@ -379,13 +365,14 @@ export default function Dashboard({
     await request(
       `/api/tasks/${deployment.taskId}/deployments/${deployment.id}`,
       { method: "DELETE" },
+      "Deleting deployment plan…",
     );
   }
   async function deleteUser(user: User) {
     if (!confirm(`Remove access for ${user.email}?`)) return;
     await request(`/api/admin/users?email=${encodeURIComponent(user.email)}`, {
       method: "DELETE",
-    });
+    }, "Removing project member…");
   }
   return (
     <div className="app-shell">

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, FolderKanban, Pencil, Search, X } from "lucide-react";
 import Link from "next/link";
+import { useLoading } from "@/components/loading/loading-provider";
 
 type Project = { id: string; name: string; description: string; active: boolean; updated_at: string };
 type ProjectRequest = { id: number; name: string; description: string; requester_name: string; requester_email: string; status: string };
@@ -21,6 +22,7 @@ export function AdminProjects({ projects: initialProjects, requests: initialRequ
   const [editError, setEditError] = useState("");
   const dialogRef = useRef<HTMLFormElement>(null);
   const editTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const { runWithLoading } = useLoading();
   const visible = useMemo(() => projects.filter((p) => `${p.name} ${p.description}`.toLowerCase().includes(query.toLowerCase())), [projects, query]);
   const pendingRequests = requests.filter((request) => request.status === "pending");
   const editingId = editing?.id;
@@ -64,11 +66,13 @@ export function AdminProjects({ projects: initialProjects, requests: initialRequ
     setBusyRequest(id);
     setError("");
     try {
-      const response = await fetch(`/api/admin/project-creation-requests/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ action }) });
-      const body = await responseBody(response);
-      if (!response.ok) throw new Error(body.error || "Unable to review request");
-      setRequests((current) => current.filter((request) => request.id !== id));
-      if (action === "approve") window.location.reload();
+      await runWithLoading(action === "approve" ? "Approving project request…" : "Rejecting project request…", async () => {
+        const response = await fetch(`/api/admin/project-creation-requests/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ action }) });
+        const body = await responseBody(response);
+        if (!response.ok) throw new Error(body.error || "Unable to review request");
+        setRequests((current) => current.filter((request) => request.id !== id));
+        if (action === "approve") window.location.reload();
+      });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to review request");
     } finally { setBusyRequest(null); }
@@ -79,12 +83,14 @@ export function AdminProjects({ projects: initialProjects, requests: initialRequ
     setSaving(true);
     setEditError("");
     try {
-      const response = await fetch("/api/admin/projects", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(editing) });
-      const body = await responseBody(response);
-      if (!response.ok) throw new Error(body.error || "Unable to save project");
-      setProjects((current) => current.map((project) => project.id === body.id ? body as Project : project));
-      setEditing(null);
-      requestAnimationFrame(() => editTriggerRef.current?.focus());
+      await runWithLoading("Saving project…", async () => {
+        const response = await fetch("/api/admin/projects", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(editing) });
+        const body = await responseBody(response);
+        if (!response.ok) throw new Error(body.error || "Unable to save project");
+        setProjects((current) => current.map((project) => project.id === body.id ? body as Project : project));
+        setEditing(null);
+        requestAnimationFrame(() => editTriggerRef.current?.focus());
+      });
     } catch (cause) {
       setEditError(cause instanceof Error ? cause.message : "Unable to save project");
     } finally { setSaving(false); }

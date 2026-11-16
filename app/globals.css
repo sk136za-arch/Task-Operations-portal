@@ -131,3 +131,68 @@
     --sidebar-ring: #737373;
   }
 }
+
+.global-loading-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(360px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  padding: 30px 28px;
+  border: 1px solid #c7dbcb;
+  border-radius: 20px;
+  background: #fff;
+  color: #0d2f24;
+  text-align: center;
+  box-shadow: 0 24px 70px rgb(9 35 26 / 22%);
+}
+
+.global-loading-dialog::backdrop {
+  background: rgb(7 31 23 / 62%);
+}
+
+.global-loading-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 19px;
+  border-radius: 18px;
+  background: #ebf8db;
+  color: #12543c;
+}
+
+.global-loading-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.global-loading-eyebrow {
+  margin: 0 0 8px;
+  color: #5b836c;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.global-loading-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.global-loading-help {
+  margin: 9px 0 0;
+  color: #627c70;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-loading-icon svg {
+    animation-duration: 2s;
+  }
+}
