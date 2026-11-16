@@ -131,7 +131,7 @@ npm run lint
 4. Publish using one of the supported hosts:
 
    - **Cloudflare Sites:** commit and push the source revision, then publish through the Sites workflow configured by `.openai/hosting.json`.
-   - **Vercel:** import the Git repository. `vercel.json` runs `npm run build`; the Vercel-only build uses Nitro and emits the required `.vercel/output` deployment bundle. In Vercel Project Settings, add the three variables above for the Production environment, then deploy. Do not set an Output Directory manually.
+   - **Vercel:** import the Git repository. `vercel.json` explicitly selects the **Other** framework preset so Vercel does not try to run the Next.js builder. It runs `npm run build`; the Vercel-only build uses Nitro and emits the required `.vercel/output` deployment bundle. In Vercel Project Settings, add the three variables above for the Production environment, then deploy. Do not set an Output Directory manually.
 
 Do not place credentials in `.openai/hosting.json`, source files, or client-side environment variables.
 
