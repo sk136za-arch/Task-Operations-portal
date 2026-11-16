@@ -8,10 +8,19 @@ export function globalAdminEmails() {
   return new Set([ADMIN_EMAIL, ...(process.env.ADMIN_EMAILS ?? "").split(",")].map((v) => v.trim().toLowerCase()).filter(Boolean));
 }
 
+export async function requireGlobalAdmin() {
+  const identity = await getChatGPTUser();
+  if (!identity) return { error: Response.json({ error: "Authentication required" }, { status: 401 }) } as const;
+  if (!globalAdminEmails().has(identity.email.toLowerCase())) return { error: Response.json({ error: "Super admin access is required" }, { status: 403 }) } as const;
+  return { identity } as const;
+}
+
 export async function projectPrincipal(projectId: string): Promise<ProjectPrincipal | null> {
   const identity = await getChatGPTUser();
   if (!identity) return null;
   const email = identity.email.toLowerCase();
+  const project = unwrap<any>(await getDb().from("projects").select("active").eq("id", projectId).maybeSingle());
+  if (!project?.active) return null;
   const isGlobalAdmin = globalAdminEmails().has(email);
   if (isGlobalAdmin) return { identity, role: "admin", isGlobalAdmin };
   const member = unwrap<any>(await getDb().from("project_members").select("role, active").eq("project_id", projectId).eq("email", email).maybeSingle());

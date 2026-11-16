@@ -1,0 +1,3 @@
+import { requireGlobalAdmin } from "@/lib/projects"; import { redirect } from "next/navigation"; import { getDb, unwrap } from "@/db"; import { AdminProjects } from "@/components/projects/admin-projects";
+export const dynamic="force-dynamic";
+export default async function Page(){const auth=await requireGlobalAdmin();if("error" in auth)redirect("/");const db=getDb();const [projects,requests]=await Promise.all([unwrap<any[]>(await db.from("projects").select().order("name")),unwrap<any[]>(await db.from("project_creation_requests").select().order("created_at",{ascending:false}))]);return <AdminProjects projects={projects} requests={requests}/>}

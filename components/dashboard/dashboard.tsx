@@ -388,6 +388,7 @@ export default function Dashboard({
           </div>
         </div>
         <nav>
+          <a className="back-to-projects" href="/">← Back to projects</a>
           <button
             className={tab === "overview" ? "active" : ""}
             onClick={() => setTab("overview")}

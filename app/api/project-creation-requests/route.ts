@@ -1,0 +1,5 @@
+import { getChatGPTUser } from "@/app/chatgpt-auth";
+import { getDb, unwrap } from "@/db";
+import { z } from "zod";
+const input=z.object({name:z.string().trim().min(1).max(100),description:z.string().trim().max(500)});
+export async function POST(request:Request){const identity=await getChatGPTUser();if(!identity)return Response.json({error:"Authentication required"},{status:401});const parsed=input.safeParse(await request.json());if(!parsed.success)return Response.json({error:"Enter a project name and a description up to 500 characters."},{status:400});const db=getDb(),email=identity.email.toLowerCase();const pending=unwrap<any>(await db.from("project_creation_requests").select("id").eq("requester_email",email).eq("name",parsed.data.name).eq("status","pending").maybeSingle());if(pending)return Response.json({error:"A request with this project name is already pending."},{status:409});const created=unwrap(await db.from("project_creation_requests").insert({requester_id:identity.userId,requester_email:email,requester_name:identity.displayName,name:parsed.data.name,description:parsed.data.description}).select().single());return Response.json(created,{status:201});}
