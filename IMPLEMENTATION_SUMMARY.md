@@ -22,6 +22,7 @@ Operational data APIs now require an authorized project scope; dashboard actions
 - Improved chooser and super-admin project UI accessibility and mobile behavior.
 - Added a shared full-screen loading dialog for all client-side API mutations, with concurrent-request tracking and operation labels.
 - Locked super-admin members from project-level editing, removal, and manual addition in both UI and API handlers.
+- Removed desktop shell letterboxing so the dashboard fills the viewport at every supported breakpoint.
 
 # Architecture Decisions
 

@@ -2876,6 +2876,36 @@ tbody tr:hover {
   }
 }
 
+/* The operational dashboard always owns the full viewport; no desktop letterboxing. */
+.app-shell {
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  margin: 0;
+  box-shadow: none;
+}
+
+.side {
+  inset: 0 auto 0 0;
+  height: 100dvh;
+}
+
+.main {
+  max-width: none;
+  min-height: 100dvh;
+}
+
+@media (max-width: 760px) {
+  .app-shell,
+  .main {
+    min-height: 100dvh;
+  }
+
+  .side {
+    height: auto;
+  }
+}
+
 /* Project chooser and administration interaction states. */
 .sr-only {
   position: absolute;
