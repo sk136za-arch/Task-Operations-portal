@@ -54,6 +54,8 @@ Restart `npm run dev` after changing `.env.local`.
 
 Never commit `.env.local`, expose `SUPABASE_SECRET_KEY` to browser code, or prefix it with `NEXT_PUBLIC_`.
 
+`SUPABASE_SECRET_KEY` must be the Supabase **Secret key** (`sb_secret_...`) or legacy `service_role` key. Do not use an `sb_publishable_...` or `anon` key: those are browser keys and RLS will reject account creation and server-side data changes.
+
 ### 3. Create the local schema
 
 Apply the tracked migration to Docker's local Postgres:
