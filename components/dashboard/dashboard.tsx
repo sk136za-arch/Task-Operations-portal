@@ -40,6 +40,36 @@ import {
   tone,
 } from "./utils";
 
+type AuditSnapshot = Record<string, unknown>;
+
+function parseAuditSnapshot(value?: string | null): AuditSnapshot | null {
+  if (!value) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as AuditSnapshot)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function snapshotTaskId(snapshot: AuditSnapshot | null) {
+  const direct = snapshot?.taskId ?? snapshot?.task_id;
+  if (typeof direct === "string") return direct;
+  const task = snapshot?.task;
+  if (task && typeof task === "object") {
+    const nested = task as AuditSnapshot;
+    const taskId = nested.taskId ?? nested.task_id;
+    if (typeof taskId === "string") return taskId;
+  }
+  return null;
+}
+
+function auditTimestamp(value: string) {
+  return value.replace("T", " ").replace(/\.\d+Z$/, " UTC");
+}
+
 export default function Dashboard({
   tasks,
   deployments,
@@ -51,6 +81,8 @@ export default function Dashboard({
   projectId,
   signOutPath,
   projectSettings,
+  notificationReadIds,
+  notificationsStartedAt,
 }: {
   tasks: Task[];
   deployments: Deployment[];
@@ -62,6 +94,8 @@ export default function Dashboard({
   projectId: string;
   signOutPath: string;
   projectSettings?: React.ReactNode;
+  notificationReadIds: number[];
+  notificationsStartedAt?: string | null;
 }) {
   const router = useRouter();
   const { runWithLoading } = useLoading();
@@ -72,8 +106,11 @@ export default function Dashboard({
   const [year, setYear] = useState("all");
   const [active, setActive] = useState<Task | null>(null);
   const [tab, setTab] = useState<
-    "overview" | "tasks" | "done" | "timeline" | "config" | "access"
+    "overview" | "tasks" | "done" | "timeline" | "notifications" | "config" | "access"
   >("overview");
+  const [selectedAudit, setSelectedAudit] = useState<Audit | null>(null);
+  const [notificationSource, setNotificationSource] = useState<"others" | "mine">("others");
+  const [readAuditIds, setReadAuditIds] = useState(() => new Set(notificationReadIds));
   const [taskForm, setTaskForm] = useState<any>(null);
   const [deploymentForm, setDeploymentForm] = useState<{
     task: Task;
@@ -119,6 +156,44 @@ export default function Dashboard({
     [tasks],
   );
   const dueThresholds = useMemo(() => dueThresholdsFrom(lookups), [lookups]);
+  const notificationsStartedAtTime = notificationsStartedAt ? new Date(notificationsStartedAt).getTime() : Number.POSITIVE_INFINITY;
+  const isOwnActivity = (audit: Audit) => audit.actorEmail.trim().toLowerCase() === principal.email.trim().toLowerCase();
+  const isAuditRead = (audit: Audit) =>
+    isOwnActivity(audit) ||
+    new Date(audit.createdAt).getTime() <= notificationsStartedAtTime ||
+    readAuditIds.has(audit.id);
+  const notificationAudits = audits.filter(
+    (audit) =>
+      (audit.entityType === "task" || audit.entityType === "deployment") &&
+      (notificationSource === "mine" ? isOwnActivity(audit) : !isOwnActivity(audit)),
+  );
+  const unreadNotificationCount = audits.filter(
+    (audit) =>
+      (audit.entityType === "task" || audit.entityType === "deployment") &&
+      !isOwnActivity(audit) &&
+      !isAuditRead(audit),
+  ).length;
+  const auditTask = (audit: Audit) => {
+    if (audit.entityType === "task") return tasks.find((task) => task.taskId === audit.entityId) ?? null;
+    const deployment = deployments.find((item) => String(item.id) === audit.entityId);
+    const taskId = deployment?.taskId || snapshotTaskId(parseAuditSnapshot(audit.afterJson)) || snapshotTaskId(parseAuditSnapshot(audit.beforeJson));
+    return taskId ? tasks.find((task) => task.taskId === taskId) ?? null : null;
+  };
+  async function openNotification(audit: Audit) {
+    setSelectedAudit(audit);
+    if (isAuditRead(audit)) return;
+    setReadAuditIds((current) => new Set(current).add(audit.id));
+    try {
+      const response = await fetch(`/api/projects/${projectId}/notifications/${audit.id}/read`, { method: "POST" });
+      if (!response.ok) throw new Error("Unable to mark notification as read");
+    } catch {
+      setReadAuditIds((current) => {
+        const next = new Set(current);
+        next.delete(audit.id);
+        return next;
+      });
+    }
+  }
   const taskMatchesYear = (task?: Task) =>
     year === "all" ||
     (task !== undefined &&
@@ -472,6 +547,14 @@ export default function Dashboard({
             <CalendarRange />
             Timeline
           </button>
+          <button
+            className={tab === "notifications" ? "active" : ""}
+            onClick={() => setTab("notifications")}
+          >
+            <Activity />
+            Notifications
+            {unreadNotificationCount > 0 && <em>{unreadNotificationCount}</em>}
+          </button>
           {principal.role === "admin" && (
             <>
               <button
@@ -517,6 +600,8 @@ export default function Dashboard({
                     ? "Task done"
                     : tab === "timeline"
                       ? "Deployment timeline"
+                      : tab === "notifications"
+                        ? "Project activity"
                       : tab === "config"
                         ? "Dropdown configuration"
                         : "Access control"}
@@ -528,6 +613,8 @@ export default function Dashboard({
                   ? "Add reusable values for task forms."
                   : tab === "timeline"
                     ? "Choose a date range and inspect deployment work across the calendar."
+                    : tab === "notifications"
+                      ? "Review recent task and deployment changes in this project."
                     : "Track work, spot delivery risk, and keep deployments moving."}
             </p>
           </div>
@@ -555,7 +642,7 @@ export default function Dashboard({
           </div>
         </header>
         {csvNotice && <p className="csv-notice" role="status">{csvNotice}</p>}
-        {tab !== "access" && tab !== "timeline" && tab !== "config" && (
+        {tab !== "access" && tab !== "timeline" && tab !== "config" && tab !== "notifications" && (
           <div className="filters">
             <label>
               <Search />
@@ -817,6 +904,42 @@ export default function Dashboard({
             onPick={setActive}
           />
         )}
+        {tab === "notifications" && (
+          <section className="panel notification-panel">
+            <PanelTitle
+              title={`Notifications${notificationAudits.length ? ` · ${notificationAudits.length}` : ""}`}
+              subtitle="Task and deployment activity from this project."
+            />
+            <div className="notification-source" role="group" aria-label="Notification source">
+              <button className={notificationSource === "others" ? "active" : ""} onClick={() => setNotificationSource("others")}>Others</button>
+              <button className={notificationSource === "mine" ? "active" : ""} onClick={() => setNotificationSource("mine")}>My activity</button>
+            </div>
+            {notificationAudits.length ? (
+              <div className="notification-list">
+                {notificationAudits.map((audit) => {
+                  const task = auditTask(audit);
+                  const reference = task?.taskId || (audit.entityType === "task" ? audit.entityId : "Deployment plan");
+                  const unread = !isAuditRead(audit);
+                  return (
+                    <button className={`notification-item ${unread ? "unread" : "read"}`} key={audit.id} onClick={() => openNotification(audit)}>
+                      <span className="notification-icon"><Activity /></span>
+                      <span>
+                        <b>{audit.actorEmail}</b>
+                        <strong>{audit.action.replaceAll("-", " ").replaceAll("_", " ")}</strong>
+                        <small>{audit.entityType === "deployment" ? "Deployment plan" : "Task"} · {reference}</small>
+                      </span>
+                      <span className="notification-state">{unread ? "Unread" : "Read"}</span>
+                      <time dateTime={audit.createdAt}>{auditTimestamp(audit.createdAt)}</time>
+                      <ChevronRight />
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="empty">No task or deployment activity yet.</p>
+            )}
+          </section>
+        )}
         {tab === "config" && (
           <ConfigPanel
             lookups={lookups}
@@ -1033,6 +1156,25 @@ export default function Dashboard({
           </div>
         </Modal>
       )}
+      {selectedAudit && (() => {
+        const before = parseAuditSnapshot(selectedAudit.beforeJson);
+        const after = parseAuditSnapshot(selectedAudit.afterJson);
+        const task = auditTask(selectedAudit);
+        return (
+          <Modal title="Activity detail" close={() => setSelectedAudit(null)}>
+            <div className="audit-detail">
+              <p><b>{selectedAudit.actorEmail}</b> {selectedAudit.action.replaceAll("-", " ").replaceAll("_", " ")}</p>
+              <small>{auditTimestamp(selectedAudit.createdAt)} · {selectedAudit.entityType} · {selectedAudit.entityId}</small>
+              <div className={`audit-comparison ${before && after ? "two-columns" : ""}`}>
+                {before && <section><h3>Before</h3><pre>{JSON.stringify(before, null, 2)}</pre></section>}
+                {after && <section><h3>After</h3><pre>{JSON.stringify(after, null, 2)}</pre></section>}
+                {!before && !after && <p className="form-note">This older activity item has no readable change snapshot.</p>}
+              </div>
+              {task ? <button className="primary" onClick={() => { setSelectedAudit(null); setActive(task); }}>Open task {task.taskId}</button> : <p className="form-note">The live task is no longer available. Its recorded change remains above.</p>}
+            </div>
+          </Modal>
+        );
+      })()}
       {active && (
         <div className="drawer-backdrop" onClick={() => setActive(null)}>
           <aside className="drawer" onClick={(e) => e.stopPropagation()}>

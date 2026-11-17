@@ -51,6 +51,8 @@ export type Audit = {
   action: string;
   entityType: string;
   entityId: string;
+  beforeJson?: string | null;
+  afterJson?: string | null;
   createdAt: string;
 };
 

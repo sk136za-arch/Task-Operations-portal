@@ -70,11 +70,11 @@ Ready for migration application and environment-backed integration testing.
 
 # Task
 
-Keep overdue planned deployments visible until resolved, and synchronize terminal Task status changes with their deployment results.
+Keep overdue plans visible, synchronize terminal Task/deployment transitions, and provide a per-user notification activity feed.
 
 # Result
 
-Overdue Planned deployments remain visible as persistent red entries. Setting a Task to `Deploy Prod Done` now marks one chosen Planned deployment `success` atomically; setting a Task to a Cancel status can cancel one or all Planned deployments atomically.
+Overdue Planned deployments remain visible as persistent red entries. Terminal Task transitions synchronize with deployment results atomically, and notifications now default to other users’ activity with per-user read state and before/after snapshots.
 
 # Changes Made
 
@@ -83,12 +83,16 @@ Overdue Planned deployments remain visible as persistent red entries. Setting a 
 - Added a project-scoped cancellation endpoint with validation, project authorization, revision checking, and conflict handling.
 - Added a multi-plan cancellation modal and corrected the multiple-plan completion modal so it also completes the Task.
 - Kept Task-only terminal status updates available when no Planned deployment remains.
+- Added a read-only Notifications tab with project-scoped Task/deployment audit entries, safe snapshot parsing, detail comparison, and Task drawer navigation.
+- Extended terminal transition audit snapshots with the affected deployment data before and after the change.
+- Added migration `20261116000008_notification_reads.sql`, a scoped mark-read endpoint, unread badges, and an Others/My activity selector.
 
 # Architecture Decisions
 
 - Timeline membership is still determined by deployment `Result`.
 - Cancellation affects only deployments whose result is currently `planned`; terminal results are never overwritten.
 - The all-plans cancellation RPC locks and updates the selected row set in one SQL statement to prevent concurrent plans from being unintentionally included.
+- Notifications use the existing latest-100 project audit query. Read records are per user and audit event; all activity before the migration baseline is treated as read.
 
 # Tests
 
@@ -107,15 +111,17 @@ Overdue Planned deployments remain visible as persistent red entries. Setting a 
 # Review Findings
 
 - Verified scoped authorization, revision locking, terminal-result preservation, no-plan Task-only fallback, and desktop/mobile modal behavior by static review.
+- Verified notification project isolation, viewer read-only behavior, malformed snapshot fallback, and deleted-record detail behavior by independent review.
+- Verified mark-read idempotence, default other-user filtering, unread count behavior, and responsive source selector by independent test/review.
 
 # Remaining Concerns
 
-- Apply migration `20261116000007_task_status_deployment_transitions.sql` before deploying this version.
+- Apply migrations `20261116000007_task_status_deployment_transitions.sql` and `20261116000008_notification_reads.sql` before deploying this version.
 - No automated dashboard test suite is configured; local Supabase/browser QA remains recommended.
 
 # Files Changed
 
-- Dashboard, Task API routes, validation, project cancellation route, timeline stylesheet, and Supabase migration.
+- Dashboard, audit types, timeline stylesheet, Task API routes, validation, project cancellation route, and Supabase migration.
 
 # Final Status
 
