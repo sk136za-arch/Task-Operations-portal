@@ -86,6 +86,7 @@ Overdue Planned deployments remain visible as persistent red entries. Terminal T
 - Added a read-only Notifications tab with project-scoped Task/deployment audit entries, safe snapshot parsing, detail comparison, and Task drawer navigation.
 - Extended terminal transition audit snapshots with the affected deployment data before and after the change.
 - Added migration `20261116000008_notification_reads.sql`, a scoped mark-read endpoint, unread badges, and an Others/My activity selector.
+- Reworked activity details into Task/deployment change cards that show only user-facing fields whose values changed; raw audit JSON is no longer rendered in the UI.
 
 # Architecture Decisions
 
@@ -93,6 +94,7 @@ Overdue Planned deployments remain visible as persistent red entries. Terminal T
 - Cancellation affects only deployments whose result is currently `planned`; terminal results are never overwritten.
 - The all-plans cancellation RPC locks and updates the selected row set in one SQL statement to prevent concurrent plans from being unintentionally included.
 - Notifications use the existing latest-100 project audit query. Read records are per user and audit event; all activity before the migration baseline is treated as read.
+- Activity detail normalizes flat CRUD snapshots and nested terminal-transition snapshots, matching related Task and deployment records by stable IDs before calculating a field-level diff.
 
 # Tests
 
@@ -100,6 +102,7 @@ Overdue Planned deployments remain visible as persistent red entries. Terminal T
 - Targeted ESLint on changed files
 - `npm run lint`
 - `npm run build`
+- Field-level audit-diff static scenarios for create, update, delete, terminal transitions, malformed snapshots, and narrow/mobile layouts
 - Independent implementation test and review
 
 # Validation

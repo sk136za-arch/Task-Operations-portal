@@ -149,14 +149,28 @@ select {
 .notification-source button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #65748c; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .notification-source button.active { background: #fff; color: #384fc0; box-shadow: 0 1px 3px #243d7d1a; }
 .audit-detail { display: grid; gap: 14px; }
-.audit-detail > p { margin: 0; color: #263c32; }
-.audit-detail > small { color: #71809a; }
-.audit-comparison { display: grid; gap: 12px; }
-.audit-comparison.two-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.audit-comparison section { min-width: 0; }
-.audit-comparison h3 { margin: 0 0 7px; font-size: 13px; color: #496155; }
-.audit-comparison pre { max-height: 320px; margin: 0; overflow: auto; padding: 12px; border: 1px solid #e1e8f1; border-radius: 8px; background: #f7f9fb; color: #33455d; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
-@media (max-width: 640px) { .notification-item { grid-template-columns: auto minmax(0, 1fr) auto; } .notification-item time, .notification-item .notification-state { grid-column: 2; } .notification-item > svg { grid-column: 3; grid-row: 1 / span 3; } .notification-item .notification-state { justify-self: start; } .audit-comparison.two-columns { grid-template-columns: 1fr; } }
+.audit-detail-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.audit-detail-heading p { margin: 0 0 4px; color: #263c32; }
+.audit-detail-heading small { color: #71809a; }
+.audit-change-count { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: #eef4ff; color: #415bc7; font-size: 12px; font-weight: 800; }
+.audit-change-groups { display: grid; gap: 12px; }
+.audit-change-group { overflow: hidden; border: 1px solid #e0e7f0; border-radius: 12px; background: #fff; }
+.audit-change-group > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border-bottom: 1px solid #e8edf3; background: #f7f9fc; }
+.audit-change-group h3 { margin: 0; color: #294237; font-size: 14px; }
+.audit-change-group > header span { color: #72809a; font-size: 12px; font-weight: 700; }
+.audit-change-list { display: grid; }
+.audit-change + .audit-change { border-top: 1px solid #edf1f5; }
+.audit-change { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; padding: 12px 13px; }
+.audit-change-label { padding-top: 9px; color: #56667f; font-size: 12px; font-weight: 800; }
+.audit-change-values { display: grid; grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr); align-items: stretch; gap: 7px; min-width: 0; }
+.audit-change-value { display: grid; min-width: 0; gap: 3px; padding: 8px 9px; border-radius: 8px; }
+.audit-change-value small { color: #78859a; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.audit-change-value strong { color: #33445d; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; white-space: pre-wrap; }
+.audit-change-value.before { background: #fff3f3; }
+.audit-change-value.after { background: #eef8f1; }
+.audit-change-added .audit-change-value.before, .audit-change-removed .audit-change-value.after { background: #f5f7fa; }
+.audit-change-arrow { display: grid; place-items: center; color: #8a98aa; font-size: 16px; font-weight: 800; }
+@media (max-width: 640px) { .notification-item { grid-template-columns: auto minmax(0, 1fr) auto; } .notification-item time, .notification-item .notification-state { grid-column: 2; } .notification-item > svg { grid-column: 3; grid-row: 1 / span 3; } .notification-item .notification-state { justify-self: start; } .audit-detail-heading { display: grid; } .audit-change { grid-template-columns: 1fr; gap: 7px; } .audit-change-label { padding-top: 0; } .audit-change-values { grid-template-columns: 1fr; gap: 4px; } .audit-change-arrow { height: 12px; transform: rotate(90deg); } }
 .project-empty { padding: 52px; border: 1px dashed #b9c9c0; border-radius: 18px; color: #60736a; text-align: center; }
 .project-empty svg { width: 34px; height: 34px; color: #79a08a; }
 .project-empty h2 { margin: 14px 0 4px; color: #1b3529; }

@@ -41,6 +41,94 @@ import {
 } from "./utils";
 
 type AuditSnapshot = Record<string, unknown>;
+type AuditRecordType = "task" | "deployment";
+type AuditRecord = { type: AuditRecordType; key: string; title: string; values: AuditSnapshot };
+type AuditChange = { label: string; before?: unknown; after?: unknown; kind: "added" | "removed" | "changed" };
+type AuditChangeGroup = { key: string; title: string; changes: AuditChange[] };
+
+const AUDIT_FIELDS: Record<AuditRecordType, Array<[string, string]>> = {
+  task: [
+    ["task_id", "Task ID"], ["environment", "Environment"], ["team", "Team"],
+    ["service", "Service"], ["title", "Title"], ["start_date", "Start date"],
+    ["end_date", "End date"], ["uat_detail", "UAT detail"],
+    ["production_detail", "Production detail"], ["status", "Status"], ["remark", "Remark"],
+  ],
+  deployment: [
+    ["sprint", "Sprint"], ["environment", "Environment"], ["type", "Type"],
+    ["planned_date", "Planned date"], ["actual_date", "Actual date"],
+    ["date_label", "Date label"], ["detail", "Detail"], ["result", "Result"],
+  ],
+};
+
+function asAuditRecord(value: unknown): AuditSnapshot | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as AuditSnapshot)
+    : null;
+}
+
+function auditRecordKey(type: AuditRecordType, values: AuditSnapshot) {
+  if (values.id !== undefined && values.id !== null) return `${type}:${String(values.id)}`;
+  return type === "task"
+    ? `task:${String(values.task_id ?? "unknown")}`
+    : `deployment:${String(values.task_id ?? "unknown")}:${String(values.sprint ?? "")}:${String(values.type ?? "")}:${String(values.environment ?? "")}`;
+}
+
+function auditRecordTitle(type: AuditRecordType, values: AuditSnapshot) {
+  if (type === "task") return `Task · ${String(values.task_id ?? "Unknown")}`;
+  const name = values.sprint || values.type || "Deployment plan";
+  return `Deployment · ${String(name)}${values.environment ? ` · ${String(values.environment)}` : ""}`;
+}
+
+function snapshotRecords(snapshot: AuditSnapshot | null, entityType: string): AuditRecord[] {
+  if (!snapshot) return [];
+  const records: AuditRecord[] = [];
+  const add = (type: AuditRecordType, value: unknown) => {
+    const values = asAuditRecord(value);
+    if (values) records.push({ type, key: auditRecordKey(type, values), title: auditRecordTitle(type, values), values });
+  };
+  if (snapshot.task || snapshot.deployment || Array.isArray(snapshot.deployments)) {
+    add("task", snapshot.task);
+    add("deployment", snapshot.deployment);
+    if (Array.isArray(snapshot.deployments)) snapshot.deployments.forEach((item) => add("deployment", item));
+  } else {
+    add(entityType === "deployment" ? "deployment" : "task", snapshot);
+  }
+  return records;
+}
+
+function valuesEqual(left: unknown, right: unknown) {
+  return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+}
+
+function hasValue(value: unknown) {
+  return value !== undefined && value !== null && value !== "";
+}
+
+function displayAuditValue(value: unknown) {
+  if (!hasValue(value)) return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return typeof value === "string" || typeof value === "number" ? String(value) : JSON.stringify(value);
+}
+
+function buildAuditChanges(before: AuditSnapshot | null, after: AuditSnapshot | null, entityType: string): AuditChangeGroup[] {
+  const beforeRecords = new Map(snapshotRecords(before, entityType).map((record) => [record.key, record]));
+  const afterRecords = new Map(snapshotRecords(after, entityType).map((record) => [record.key, record]));
+  const recordKeys = [...new Set([...beforeRecords.keys(), ...afterRecords.keys()])];
+  return recordKeys.flatMap((key) => {
+    const previous = beforeRecords.get(key);
+    const next = afterRecords.get(key);
+    const type = previous?.type ?? next?.type;
+    if (!type) return [];
+    const changes = AUDIT_FIELDS[type].flatMap(([field, label]) => {
+      const oldValue = previous?.values[field];
+      const newValue = next?.values[field];
+      if (!previous) return hasValue(newValue) ? [{ label, after: newValue, kind: "added" as const }] : [];
+      if (!next) return hasValue(oldValue) ? [{ label, before: oldValue, kind: "removed" as const }] : [];
+      return valuesEqual(oldValue, newValue) ? [] : [{ label, before: oldValue, after: newValue, kind: "changed" as const }];
+    });
+    return changes.length ? [{ key, title: previous?.title ?? next?.title ?? "Change", changes }] : [];
+  });
+}
 
 function parseAuditSnapshot(value?: string | null): AuditSnapshot | null {
   if (!value) return null;
@@ -1159,17 +1247,51 @@ export default function Dashboard({
       {selectedAudit && (() => {
         const before = parseAuditSnapshot(selectedAudit.beforeJson);
         const after = parseAuditSnapshot(selectedAudit.afterJson);
+        const changeGroups = buildAuditChanges(before, after, selectedAudit.entityType);
+        const changeCount = changeGroups.reduce((total, group) => total + group.changes.length, 0);
         const task = auditTask(selectedAudit);
         return (
-          <Modal title="Activity detail" close={() => setSelectedAudit(null)}>
+          <Modal title="Activity details" close={() => setSelectedAudit(null)}>
             <div className="audit-detail">
-              <p><b>{selectedAudit.actorEmail}</b> {selectedAudit.action.replaceAll("-", " ").replaceAll("_", " ")}</p>
-              <small>{auditTimestamp(selectedAudit.createdAt)} · {selectedAudit.entityType} · {selectedAudit.entityId}</small>
-              <div className={`audit-comparison ${before && after ? "two-columns" : ""}`}>
-                {before && <section><h3>Before</h3><pre>{JSON.stringify(before, null, 2)}</pre></section>}
-                {after && <section><h3>After</h3><pre>{JSON.stringify(after, null, 2)}</pre></section>}
-                {!before && !after && <p className="form-note">This older activity item has no readable change snapshot.</p>}
+              <div className="audit-detail-heading">
+                <div>
+                  <p><b>{selectedAudit.actorEmail}</b> {selectedAudit.action.replaceAll("-", " ").replaceAll("_", " ")}</p>
+                  <small>{auditTimestamp(selectedAudit.createdAt)} · {selectedAudit.entityType}</small>
+                </div>
+                {changeCount > 0 && <span className="audit-change-count">{changeCount} {changeCount === 1 ? "change" : "changes"}</span>}
               </div>
+              {changeGroups.length > 0 ? (
+                <div className="audit-change-groups">
+                  {changeGroups.map((group) => (
+                    <section className="audit-change-group" key={group.key}>
+                      <header>
+                        <h3>{group.title}</h3>
+                        <span>{group.changes.length} {group.changes.length === 1 ? "field" : "fields"}</span>
+                      </header>
+                      <div className="audit-change-list">
+                        {group.changes.map((change) => (
+                          <div className={`audit-change audit-change-${change.kind}`} key={change.label}>
+                            <span className="audit-change-label">{change.label}</span>
+                            <div className="audit-change-values">
+                              <div className="audit-change-value before">
+                                <small>{change.kind === "added" ? "Not set" : "Before"}</small>
+                                <strong>{displayAuditValue(change.before)}</strong>
+                              </div>
+                              <span className="audit-change-arrow" aria-hidden="true">→</span>
+                              <div className="audit-change-value after">
+                                <small>{change.kind === "removed" ? "Removed" : "After"}</small>
+                                <strong>{displayAuditValue(change.after)}</strong>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <p className="form-note">{before || after ? "No user-visible field changes were recorded for this activity." : "This older activity item has no readable change snapshot."}</p>
+              )}
               {task ? <button className="primary" onClick={() => { setSelectedAudit(null); setActive(task); }}>Open task {task.taskId}</button> : <p className="form-note">The live task is no longer available. Its recorded change remains above.</p>}
             </div>
           </Modal>
