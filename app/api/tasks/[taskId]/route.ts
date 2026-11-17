@@ -16,7 +16,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
   if (!parsed.success || !parsed.data.revision) return Response.json({ error: "Invalid task or revision" }, { status: 400 });
   const db = getDb(), before = unwrap<any>(await db.from("tasks").select().eq("project_id", auth.projectId).eq("task_id", taskId).maybeSingle());
   if (!before) return Response.json({ error: "Not found" }, { status: 404 });
-  if (before.status.trim().toLowerCase() !== "deploy prod done" && parsed.data.status.trim().toLowerCase() === "deploy prod done") return Response.json({ error: "Use the complete production workflow", code: "use_complete_production" }, { status: 409 });
+  const nextStatus = parsed.data.status.trim().toLowerCase();
+  const requiresDeploymentTransition =
+    (before.status.trim().toLowerCase() !== "deploy prod done" && nextStatus === "deploy prod done") ||
+    (/cancel/i.test(nextStatus) && !/cancel/i.test(before.status));
+  if (requiresDeploymentTransition) {
+    const planned = unwrap(await db.from("deployments").select("id").eq("project_id", auth.projectId).eq("task_id", taskId).eq("result", "planned").limit(1).maybeSingle());
+    if (planned) return Response.json({ error: "Use the deployment transition workflow", code: "use_deployment_transition" }, { status: 409 });
+  }
   const now = new Date().toISOString(), data = { environment: parsed.data.environment, team: parsed.data.team, service: parsed.data.service, title: parsed.data.title, start_date: parsed.data.startDate, end_date: parsed.data.endDate, uat_detail: parsed.data.uatDetail, production_detail: parsed.data.productionDetail, status: parsed.data.status, remark: parsed.data.remark, revision: before.revision + 1, updated_at: now, updated_by: auth.principal.identity.email };
   const updated = unwrap<any>(await db.from("tasks").update(data).eq("project_id", auth.projectId).eq("task_id", taskId).eq("revision", parsed.data.revision).select().maybeSingle());
   if (!updated) return Response.json({ error: "Task changed by another user", current: camelize(before) }, { status: 409 });

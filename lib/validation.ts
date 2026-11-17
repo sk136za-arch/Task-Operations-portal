@@ -30,3 +30,22 @@ export const deploymentInput = z.object({
   detail: z.string().min(1).max(5000),
   result: z.string().max(80).default("planned"),
 });
+
+const cancelStatus = z.string().trim().min(1).max(80).refine(
+  (value) => /cancel/i.test(value),
+  "Status must be a cancellation status",
+);
+
+export const cancelDeploymentInput = z.discriminatedUnion("scope", [
+  z.object({
+    revision: z.number().int().positive(),
+    status: cancelStatus,
+    scope: z.literal("all"),
+  }),
+  z.object({
+    revision: z.number().int().positive(),
+    status: cancelStatus,
+    scope: z.literal("one"),
+    deploymentId: z.number().int().positive(),
+  }),
+]);

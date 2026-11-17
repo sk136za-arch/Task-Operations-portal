@@ -14,7 +14,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tas
     if (planned.length > 1) return Response.json({ code: "deployment_selection_required", deployments: camelize(planned) }, { status: 409 });
   }
   try {
-    const result = unwrap(await db.rpc("complete_project_production", { p_project_id: auth.projectId, p_task_id: taskId, p_revision: parsed.data.revision, p_deployment_id: parsed.data.deploymentId ?? null, p_mark_task_done: parsed.data.deploymentId === undefined, p_actor_id: auth.principal.identity.userId, p_actor_email: auth.principal.identity.email }));
+    const result = unwrap(await db.rpc("complete_project_production", { p_project_id: auth.projectId, p_task_id: taskId, p_revision: parsed.data.revision, p_deployment_id: parsed.data.deploymentId ?? null, p_mark_task_done: true, p_actor_id: auth.principal.identity.userId, p_actor_email: auth.principal.identity.email }));
     return Response.json(camelize(result));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to complete production";

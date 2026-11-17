@@ -65,3 +65,58 @@ Operational data APIs now require an authorized project scope; dashboard actions
 # Final Status
 
 Ready for migration application and environment-backed integration testing.
+
+---
+
+# Task
+
+Keep overdue planned deployments visible until resolved, and synchronize terminal Task status changes with their deployment results.
+
+# Result
+
+Overdue Planned deployments remain visible as persistent red entries. Setting a Task to `Deploy Prod Done` now marks one chosen Planned deployment `success` atomically; setting a Task to a Cancel status can cancel one or all Planned deployments atomically.
+
+# Changes Made
+
+- Removed the current-date exclusion from the timeline and added a dedicated red `due-overdue` state.
+- Added migration `20261116000007_task_status_deployment_transitions.sql` with atomic success and cancellation RPCs.
+- Added a project-scoped cancellation endpoint with validation, project authorization, revision checking, and conflict handling.
+- Added a multi-plan cancellation modal and corrected the multiple-plan completion modal so it also completes the Task.
+- Kept Task-only terminal status updates available when no Planned deployment remains.
+
+# Architecture Decisions
+
+- Timeline membership is still determined by deployment `Result`.
+- Cancellation affects only deployments whose result is currently `planned`; terminal results are never overwritten.
+- The all-plans cancellation RPC locks and updates the selected row set in one SQL statement to prevent concurrent plans from being unintentionally included.
+
+# Tests
+
+- `git diff --check`
+- Targeted ESLint on changed files
+- `npm run lint`
+- `npm run build`
+- Independent implementation test and review
+
+# Validation
+
+- Diff check and production build passed.
+- Targeted lint found only pre-existing errors/warnings in existing dashboard and task-route code; no new endpoint or validation error was reported.
+- Repository-wide lint remains blocked by existing issues.
+
+# Review Findings
+
+- Verified scoped authorization, revision locking, terminal-result preservation, no-plan Task-only fallback, and desktop/mobile modal behavior by static review.
+
+# Remaining Concerns
+
+- Apply migration `20261116000007_task_status_deployment_transitions.sql` before deploying this version.
+- No automated dashboard test suite is configured; local Supabase/browser QA remains recommended.
+
+# Files Changed
+
+- Dashboard, Task API routes, validation, project cancellation route, timeline stylesheet, and Supabase migration.
+
+# Final Status
+
+Ready for migration application and browser QA.

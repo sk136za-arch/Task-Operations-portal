@@ -2835,7 +2835,7 @@ tbody tr:hover {
   min-width: 0;
 }
 
-.upcoming-scroll .upcoming-entry:is(.due-3, .due-7, .due-11) {
+.upcoming-scroll .upcoming-entry:is(.due-overdue, .due-3, .due-7, .due-11) {
   margin-left: 0;
   margin-right: 0;
 }
@@ -3017,11 +3017,23 @@ tbody tr:hover {
   max-width: 170px;
   justify-self: end;
 }
-.timeline .upcoming-entry:is(.due-3, .due-7, .due-11) {
+.timeline .upcoming-entry:is(.due-overdue, .due-3, .due-7, .due-11) {
   margin: 4px -10px;
   padding: 14px 10px;
   border: 1px solid;
   border-radius: 8px;
+}
+.timeline .upcoming-entry.due-overdue {
+  border-color: #efc2c8;
+  background: #fff0f2;
+}
+.timeline .upcoming-entry.due-overdue .date i {
+  background: #f8d7dc;
+  color: #9f3442;
+}
+.timeline .upcoming-entry.due-overdue .dot {
+  background: #d85a67;
+  box-shadow: 0 0 0 4px #f9dce0;
 }
 .timeline .upcoming-entry.due-3 {
   border-color: #efc2c8;
@@ -3149,7 +3161,7 @@ tbody tr:hover {
 }
 
 /* Final responsive overrides must follow the legacy viewport rules above. */
-.upcoming-scroll .upcoming-entry:is(.due-3, .due-7, .due-11) {
+.upcoming-scroll .upcoming-entry:is(.due-overdue, .due-3, .due-7, .due-11) {
   margin-left: 0;
   margin-right: 0;
 }

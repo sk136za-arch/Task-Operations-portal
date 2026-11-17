@@ -88,6 +88,17 @@ export default function Dashboard({
   const [completionDeploymentId, setCompletionDeploymentId] = useState<
     number | null
   >(null);
+  const [cancellationChoice, setCancellationChoice] = useState<{
+    task: Task;
+    status: string;
+    deployments: Deployment[];
+  } | null>(null);
+  const [cancellationScope, setCancellationScope] = useState<"all" | "one">(
+    "all",
+  );
+  const [cancellationDeploymentId, setCancellationDeploymentId] = useState<
+    number | null
+  >(null);
   const [busy, setBusy] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -145,7 +156,6 @@ export default function Dashboard({
     .filter(
       (x): x is { d: Deployment; date: Date } =>
         x.date !== null &&
-        x.date >= today &&
         taskMatchesYear(tasksById.get(x.d.taskId)),
     )
     .sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -287,8 +297,24 @@ export default function Dashboard({
     );
   }
   async function updateTaskStatus(task: Task, nextStatus: string) {
-    if (nextStatus.trim().toLowerCase() === "deploy prod done") {
+    const plannedDeployments = deployments.filter(
+      (deployment) =>
+        deployment.taskId === task.taskId &&
+        deployment.result.trim().toLowerCase() === "planned",
+    );
+    const normalizedStatus = nextStatus.trim().toLowerCase();
+    if (normalizedStatus === "deploy prod done" && plannedDeployments.length) {
       await completeProduction(task);
+      return;
+    }
+    if (/cancel/i.test(normalizedStatus) && plannedDeployments.length) {
+      if (plannedDeployments.length === 1) {
+        await cancelDeploymentPlans(task, nextStatus, "all");
+      } else {
+        setCancellationChoice({ task, status: nextStatus, deployments: plannedDeployments });
+        setCancellationScope("all");
+        setCancellationDeploymentId(null);
+      }
       return;
     }
     await request(`/api/tasks/${task.taskId}`, {
@@ -311,6 +337,38 @@ export default function Dashboard({
         }
         if (!response.ok) throw new Error(body.error || "Request failed");
         setCompletionChoice(null); setCompletionDeploymentId(null); setActive(null); router.refresh();
+      });
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Request failed");
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function cancelDeploymentPlans(
+    task: Task,
+    status: string,
+    scope: "all" | "one",
+    deploymentId?: number,
+  ) {
+    setBusy(true);
+    try {
+      await runWithLoading("Cancelling deployment plan…", async () => {
+        const response = await fetch(
+          `/api/projects/${projectId}/tasks/${task.taskId}/cancel-deployments`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ revision: task.revision, status, scope, ...(scope === "one" ? { deploymentId } : {}) }),
+          },
+        );
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Request failed");
+        setCancellationChoice(null);
+        setCancellationScope("all");
+        setCancellationDeploymentId(null);
+        setActive(null);
+        router.refresh();
       });
     } catch (error) {
       alert(error instanceof Error ? error.message : "Request failed");
@@ -618,7 +676,7 @@ export default function Dashboard({
             <section className="panel">
               <PanelTitle
                 title="Upcoming deployment timeline"
-                subtitle="Future deployments with a valid deploy plan date, ordered nearest first"
+                subtitle="Planned deployments with a valid deploy plan date. Overdue plans stay red until their deployment result is updated."
               />
               <div className="timeline upcoming-scroll">
                 {upcoming.map(({ d, date }) => {
@@ -627,7 +685,12 @@ export default function Dashboard({
                     (date.getTime() - today.getTime()) / 86400000,
                   );
                   const due =
-                    daysUntil <= dueThresholds.red
+                    daysUntil < 0
+                      ? {
+                          className: "due-overdue",
+                          label: `Overdue by ${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? "" : "s"}`,
+                        }
+                      : daysUntil <= dueThresholds.red
                       ? {
                           className: "due-3",
                           label: `Due within ${dueThresholds.red} days`,
@@ -703,7 +766,7 @@ export default function Dashboard({
                 })}
                 {!upcoming.length && (
                   <p className="empty">
-                    No upcoming deployments for{" "}
+                    No planned deployments for{" "}
                     {year === "all" ? "the selected filters" : year}.
                   </p>
                 )}
@@ -824,7 +887,7 @@ export default function Dashboard({
         >
           <p className="completion-help">
             This task has multiple planned deployments. Choose one to mark as
-            success. The task status will remain unchanged.
+            success and set the task status to Deploy Prod Done.
           </p>
           <div className="completion-options">
             {completionChoice.deployments.map((deployment) => (
@@ -877,6 +940,95 @@ export default function Dashboard({
               }}
             >
               {busy ? "Saving…" : "Mark as success"}
+            </button>
+          </div>
+        </Modal>
+      )}
+      {cancellationChoice && (
+        <Modal
+          title={`Cancel deployment plans · ${cancellationChoice.task.taskId}`}
+          close={() => {
+            setCancellationChoice(null);
+            setCancellationScope("all");
+            setCancellationDeploymentId(null);
+          }}
+        >
+          <p className="completion-help">
+            Choose whether to cancel every planned deployment or one selected
+            deployment. The task status will also be updated to {cancellationChoice.status}.
+          </p>
+          <div className="completion-options">
+            <label className={`completion-option ${cancellationScope === "all" ? "selected" : ""}`}>
+              <input
+                type="radio"
+                name="cancellationScope"
+                checked={cancellationScope === "all"}
+                onChange={() => {
+                  setCancellationScope("all");
+                  setCancellationDeploymentId(null);
+                }}
+              />
+              <span>
+                <b>Cancel all planned deployments</b>
+                <small>{cancellationChoice.deployments.length} planned deployment{cancellationChoice.deployments.length === 1 ? "" : "s"} will be cancelled.</small>
+              </span>
+            </label>
+            <label className={`completion-option ${cancellationScope === "one" ? "selected" : ""}`}>
+              <input
+                type="radio"
+                name="cancellationScope"
+                checked={cancellationScope === "one"}
+                onChange={() => setCancellationScope("one")}
+              />
+              <span>
+                <b>Cancel one deployment</b>
+                <small>Choose a single planned deployment below.</small>
+              </span>
+            </label>
+            {cancellationScope === "one" && cancellationChoice.deployments.map((deployment) => (
+              <label
+                className={`completion-option ${cancellationDeploymentId === deployment.id ? "selected" : ""}`}
+                key={deployment.id}
+              >
+                <input
+                  type="radio"
+                  name="cancelledDeployment"
+                  checked={cancellationDeploymentId === deployment.id}
+                  onChange={() => setCancellationDeploymentId(deployment.id)}
+                />
+                <span>
+                  <b>{deployment.sprint || deployment.type.toUpperCase()} · {deployment.environment}</b>
+                  <strong>{deployment.plannedDate || deployment.dateLabel || "No date"}</strong>
+                  <small>{deployment.detail}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="completion-actions">
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => {
+                setCancellationChoice(null);
+                setCancellationScope("all");
+                setCancellationDeploymentId(null);
+              }}
+            >
+              Keep planned
+            </button>
+            <button
+              className="primary"
+              type="button"
+              disabled={busy || (cancellationScope === "one" && cancellationDeploymentId === null)}
+              onClick={() => {
+                if (cancellationScope === "all") {
+                  cancelDeploymentPlans(cancellationChoice.task, cancellationChoice.status, "all");
+                } else if (cancellationDeploymentId !== null) {
+                  cancelDeploymentPlans(cancellationChoice.task, cancellationChoice.status, "one", cancellationDeploymentId);
+                }
+              }}
+            >
+              {busy ? "Saving…" : "Cancel deployment plan"}
             </button>
           </div>
         </Modal>
