@@ -14,19 +14,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
   const auth = await requireScopedProject(request, ["admin", "editor"]); if ("error" in auth) return auth.error;
   const { taskId } = await params, parsed = taskInput.safeParse(await request.json());
   if (!parsed.success || !parsed.data.revision) return Response.json({ error: "Invalid task or revision" }, { status: 400 });
-  const db = getDb(), before = unwrap<any>(await db.from("tasks").select().eq("project_id", auth.projectId).eq("task_id", taskId).maybeSingle());
-  if (!before) return Response.json({ error: "Not found" }, { status: 404 });
-  const nextStatus = parsed.data.status.trim().toLowerCase();
-  const requiresDeploymentTransition =
-    (before.status.trim().toLowerCase() !== "deploy prod done" && nextStatus === "deploy prod done") ||
-    (/cancel/i.test(nextStatus) && !/cancel/i.test(before.status));
-  if (requiresDeploymentTransition) {
-    const planned = unwrap(await db.from("deployments").select("id").eq("project_id", auth.projectId).eq("task_id", taskId).eq("result", "planned").limit(1).maybeSingle());
-    if (planned) return Response.json({ error: "Use the deployment transition workflow", code: "use_deployment_transition" }, { status: 409 });
+  try {
+    const updated = unwrap(await getDb().rpc("update_project_task", { p_project_id: auth.projectId, p_task_id: taskId, p_revision: parsed.data.revision, p_task: parsed.data, p_actor_id: auth.principal.identity.userId, p_actor_email: auth.principal.identity.email }));
+    return Response.json(camelize(updated));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to update task";
+    if (/Use the deployment transition workflow/i.test(message)) return Response.json({ error: message, code: "use_deployment_transition" }, { status: 409 });
+    return Response.json({ error: message }, { status: /not found/i.test(message) ? 404 : 409 });
   }
-  const now = new Date().toISOString(), data = { environment: parsed.data.environment, team: parsed.data.team, service: parsed.data.service, title: parsed.data.title, start_date: parsed.data.startDate, end_date: parsed.data.endDate, uat_detail: parsed.data.uatDetail, production_detail: parsed.data.productionDetail, status: parsed.data.status, remark: parsed.data.remark, revision: before.revision + 1, updated_at: now, updated_by: auth.principal.identity.email };
-  const updated = unwrap<any>(await db.from("tasks").update(data).eq("project_id", auth.projectId).eq("task_id", taskId).eq("revision", parsed.data.revision).select().maybeSingle());
-  if (!updated) return Response.json({ error: "Task changed by another user", current: camelize(before) }, { status: 409 });
-  unwrap(await db.from("audit_logs").insert({ project_id: auth.projectId, actor_id: auth.principal.identity.userId, actor_email: auth.principal.identity.email, action: "update", entity_type: "task", entity_id: taskId, before_json: JSON.stringify(before), after_json: JSON.stringify(updated), created_at: now }));
-  return Response.json(camelize(updated));
 }

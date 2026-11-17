@@ -7,12 +7,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ta
   const auth = await requireScopedProject(request, ["admin", "editor"]); if ("error" in auth) return auth.error;
   const p = await context(params), parsed = deploymentInput.safeParse(await request.json());
   if (!Number.isSafeInteger(p.id) || !parsed.success) return Response.json({ error: "Invalid deployment", issues: parsed.success ? undefined : parsed.error.flatten() }, { status: 400 });
-  const db = getDb(), before = unwrap<any>(await db.from("deployments").select().eq("project_id", auth.projectId).eq("id", p.id).eq("task_id", p.taskId).maybeSingle());
-  if (!before) return Response.json({ error: "Not found" }, { status: 404 });
-  const now = new Date().toISOString(), updated = unwrap<any>(await db.from("deployments").update({ sprint: parsed.data.sprint, environment: parsed.data.environment, type: parsed.data.type, planned_date: parsed.data.plannedDate, actual_date: parsed.data.actualDate, date_label: parsed.data.dateLabel, detail: parsed.data.detail, result: parsed.data.result, updated_at: now }).eq("project_id", auth.projectId).eq("id", p.id).select().single());
-  unwrap(await db.from("tasks").update({ updated_at: now, updated_by: auth.principal.identity.email }).eq("project_id", auth.projectId).eq("task_id", p.taskId));
-  unwrap(await db.from("audit_logs").insert({ project_id: auth.projectId, actor_id: auth.principal.identity.userId, actor_email: auth.principal.identity.email, action: "update", entity_type: "deployment", entity_id: p.deploymentId, before_json: JSON.stringify(before), after_json: JSON.stringify(updated), created_at: now }));
-  return Response.json(camelize(updated));
+  try {
+    const updated = unwrap(await getDb().rpc("update_project_deployment", { p_project_id: auth.projectId, p_task_id: p.taskId, p_deployment_id: p.id, p_deployment: parsed.data, p_actor_id: auth.principal.identity.userId, p_actor_email: auth.principal.identity.email }));
+    return Response.json(camelize(updated));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to update deployment";
+    return Response.json({ error: message }, { status: /not found/i.test(message) ? 404 : 409 });
+  }
 }
 export async function DELETE(request: Request, { params }: { params: Promise<{ taskId: string; deploymentId: string }> }) {
   const auth = await requireScopedProject(request, ["admin", "editor"]); if ("error" in auth) return auth.error;

@@ -171,3 +171,11 @@ Confirmed mutation responses now update dashboard state immediately; server refr
 - Production dashboard reload on 18 Nov 2026 measured about 6.65 seconds in the authenticated browser, with no data-changing actions performed.
 - Reused the authenticated identity and already-validated project record in the dashboard route, removing a duplicate authentication lookup and duplicate `projects` query before the dashboard's parallel data load.
 - `npm run build` and `git diff --check` passed after the follow-up.
+
+---
+
+# Save-path performance follow-up
+
+- Added migration `20261118000010_fast_project_mutations.sql` that moves standard Task and deployment updates into single, revision-safe Supabase RPC transactions with audit logging.
+- The project-scoped API handlers retain existing validation and terminal deployment-transition protections while replacing sequential read/update/audit calls with one RPC request.
+- Apply this migration before deploying the matching API code.
