@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity,
@@ -159,12 +159,12 @@ function auditTimestamp(value: string) {
 }
 
 export default function Dashboard({
-  tasks,
-  deployments,
-  lookups,
-  users,
-  audits,
-  accessRequests,
+  tasks: initialTasks,
+  deployments: initialDeployments,
+  lookups: initialLookups,
+  users: initialUsers,
+  audits: initialAudits,
+  accessRequests: initialAccessRequests,
   principal,
   projectId,
   signOutPath,
@@ -187,6 +187,15 @@ export default function Dashboard({
 }) {
   const router = useRouter();
   const { runWithLoading } = useLoading();
+  const locallyChangedTaskIds = useRef(new Set<string>());
+  const locallyChangedDeploymentIds = useRef(new Set<number>());
+  const locallyDeletedDeploymentIds = useRef(new Set<number>());
+  const [tasks, setTasks] = useState(initialTasks);
+  const [deployments, setDeployments] = useState(initialDeployments);
+  const [lookups, setLookups] = useState(initialLookups);
+  const [users, setUsers] = useState(initialUsers);
+  const [audits, setAudits] = useState(initialAudits);
+  const [accessRequests, setAccessRequests] = useState(initialAccessRequests);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [team, setTeam] = useState("all");
@@ -232,6 +241,58 @@ export default function Dashboard({
   const [startDate, setStartDate] = useState(timelineRange.startDate);
   const [endDate, setEndDate] = useState(timelineRange.endDate);
   const [timelineEnvironment, setTimelineEnvironment] = useState("all");
+  useEffect(() => { startTransition(() => setTasks((current) => {
+    const currentById = new Map(current.map((task) => [task.taskId, task]));
+    const next = initialTasks.map((incoming) => {
+      const local = currentById.get(incoming.taskId);
+      if (!local || !locallyChangedTaskIds.current.has(incoming.taskId)) return incoming;
+      if (local.updatedAt > incoming.updatedAt) return local;
+      locallyChangedTaskIds.current.delete(incoming.taskId);
+      return incoming;
+    });
+    for (const local of current) if (!next.some((task) => task.taskId === local.taskId) && locallyChangedTaskIds.current.has(local.taskId)) next.push(local);
+    return next;
+  })); }, [initialTasks]);
+  useEffect(() => { startTransition(() => setDeployments((current) => {
+    const currentById = new Map(current.map((deployment) => [deployment.id, deployment]));
+    const incomingIds = new Set(initialDeployments.map((deployment) => deployment.id));
+    const next = initialDeployments.flatMap((incoming) => {
+      if (locallyDeletedDeploymentIds.current.has(incoming.id)) return [];
+      const local = currentById.get(incoming.id);
+      if (!local || !locallyChangedDeploymentIds.current.has(incoming.id)) return [incoming];
+      if (local.updatedAt > incoming.updatedAt) return [local];
+      locallyChangedDeploymentIds.current.delete(incoming.id);
+      return [incoming];
+    });
+    for (const id of [...locallyDeletedDeploymentIds.current]) if (!incomingIds.has(id)) locallyDeletedDeploymentIds.current.delete(id);
+    for (const local of current) if (!next.some((deployment) => deployment.id === local.id) && locallyChangedDeploymentIds.current.has(local.id)) next.push(local);
+    return next;
+  })); }, [initialDeployments]);
+  useEffect(() => { startTransition(() => setLookups(initialLookups)); }, [initialLookups]);
+  useEffect(() => { startTransition(() => setUsers(initialUsers)); }, [initialUsers]);
+  useEffect(() => { startTransition(() => setAudits(initialAudits)); }, [initialAudits]);
+  useEffect(() => { startTransition(() => setAccessRequests(initialAccessRequests)); }, [initialAccessRequests]);
+  useEffect(() => { startTransition(() => setReadAuditIds(new Set(notificationReadIds))); }, [notificationReadIds]);
+  const refreshInBackground = () => startTransition(() => router.refresh());
+  const replaceTask = (next: Task) => {
+    locallyChangedTaskIds.current.add(next.taskId);
+    setTasks((current) => {
+      const exists = current.some((task) => task.taskId === next.taskId);
+      return exists ? current.map((task) => task.taskId === next.taskId ? next : task) : [next, ...current];
+    });
+  };
+  const replaceDeployment = (next: Deployment) => {
+    locallyChangedDeploymentIds.current.add(next.id);
+    setDeployments((current) => {
+      const exists = current.some((deployment) => deployment.id === next.id);
+      return exists ? current.map((deployment) => deployment.id === next.id ? next : deployment) : [...current, next];
+    });
+  };
+  const touchTask = (taskId: string, updatedAt: string) => setTasks((current) => current.map((task) => {
+    if (task.taskId !== taskId) return task;
+    locallyChangedTaskIds.current.add(taskId);
+    return { ...task, updatedAt };
+  }));
   const years = useMemo(
     () =>
       [
@@ -268,7 +329,19 @@ export default function Dashboard({
     return taskId ? tasks.find((task) => task.taskId === taskId) ?? null : null;
   };
   async function openNotification(audit: Audit) {
-    setSelectedAudit(audit);
+    try {
+      await runWithLoading("Loading activity details…", async () => {
+        const response = await fetch(`/api/projects/${projectId}/notifications/${audit.id}`);
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Unable to load notification");
+        const detailedAudit = body as Audit;
+        setAudits((current) => current.map((item) => item.id === audit.id ? detailedAudit : item));
+        setSelectedAudit(detailedAudit);
+      });
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Unable to load notification");
+      return;
+    }
     if (isAuditRead(audit)) return;
     setReadAuditIds((current) => new Set(current).add(audit.id));
     try {
@@ -338,10 +411,10 @@ export default function Dashboard({
         {},
       ),
     ).sort((a, b) => b[1] - a[1]);
-  async function request(url: string, init: RequestInit, label = "Saving changes…") {
+  async function request<T>(url: string, init: RequestInit, label = "Saving changes…") {
     setBusy(true);
     try {
-      await runWithLoading(label, async () => {
+      return await runWithLoading(label, async () => {
         const target = new URL(url, window.location.origin);
         if (target.pathname.startsWith("/api/tasks")) target.pathname = `/api/projects/${projectId}${target.pathname.slice(4)}`;
         else if (target.pathname === "/api/admin/users") target.pathname = `/api/projects/${projectId}/members`;
@@ -349,20 +422,22 @@ export default function Dashboard({
         else if (target.pathname === "/api/admin/import") target.pathname = `/api/projects/${projectId}/seed-import`;
         const r = await fetch(`${target.pathname}${target.search}`, init);
         const text = await r.text();
-        const body = text ? JSON.parse(text) : {};
+        const body = (text ? JSON.parse(text) : {}) as T & { error?: string };
         if (!r.ok) throw new Error(body.error || "Request failed");
         setTaskForm(null); setDeploymentForm(null); setUserForm(false); setEditingUser(null); setActive(null);
-        router.refresh();
+        return body;
       });
     } catch (e) {
       alert(e instanceof Error ? e.message : "Request failed");
     } finally { setBusy(false); }
   }
   async function runImport() {
-    await request("/api/admin/import", { method: "POST" }, "Importing project data…");
+    const result = await request<object>("/api/admin/import", { method: "POST" }, "Importing project data…");
+    if (result) refreshInBackground();
   }
   async function reviewAccessRequest(requestId: number, action: "approve" | "reject") {
-    await request(`/api/projects/${projectId}/access-requests`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ requestId, action }) }, action === "approve" ? "Approving access…" : "Rejecting access…");
+    const result = await request<object>(`/api/projects/${projectId}/access-requests`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ requestId, action }) }, action === "approve" ? "Approving access…" : "Rejecting access…");
+    if (result) { setAccessRequests((current) => current.filter((item) => item.id !== requestId)); refreshInBackground(); }
   }
   async function importCsv(mode: "insert" | "replace") {
     if (!csvFile) return;
@@ -375,7 +450,8 @@ export default function Dashboard({
         const body = await response.json();
         if (!response.ok) { const details = Array.isArray(body.issues) ? `\n${body.issues.join("\n")}` : ""; throw new Error(`${body.error || "Import failed"}${details}`); }
         setCsvNotice(`${mode === "replace" ? "Replaced" : "Added"} ${body.taskCount} tasks and ${body.deploymentCount} deployment plans.`);
-        setCsvImportOpen(false); setCsvFile(null); router.refresh();
+        setCsvImportOpen(false); setCsvFile(null);
+        window.location.reload();
       });
     } catch (error) {
       alert(error instanceof Error ? error.message : "Import failed");
@@ -388,17 +464,18 @@ export default function Dashboard({
     const data = Object.fromEntries(new FormData(e.currentTarget));
     const editing = Boolean(taskForm?.revision);
     if (editing) data.revision = taskForm.revision;
-    await request(editing ? `/api/tasks/${taskForm.taskId}` : "/api/tasks", {
+    const saved = await request<Task>(editing ? `/api/tasks/${taskForm.taskId}` : "/api/tasks", {
       method: editing ? "PATCH" : "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(data),
     }, editing ? "Saving task…" : "Creating task…");
+    if (saved) { replaceTask(saved); refreshInBackground(); }
   }
   async function saveUser(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(e.currentTarget));
     const editing = Boolean(editingUser);
-    await request("/api/admin/users", {
+    const saved = await request<object>("/api/admin/users", {
       method: editing ? "PATCH" : "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -407,20 +484,26 @@ export default function Dashboard({
         active: editing ? data.active === "true" : true,
       }),
     }, editing ? "Saving project member…" : "Adding project member…");
+    if (saved) {
+      const member = saved as User;
+      setUsers((current) => current.some((user) => user.email === member.email) ? current.map((user) => user.email === member.email ? member : user) : [...current, member]);
+      refreshInBackground();
+    }
   }
   async function saveSetting(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(e.currentTarget));
-    await request("/api/admin/settings", {
+    const saved = await request<object>("/api/admin/settings", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(data),
     }, "Adding dropdown value…");
+    if (saved) { setLookups((current) => [...current, saved as Lookup]); refreshInBackground(); }
   }
   async function saveDueThresholds(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(e.currentTarget));
-    await request("/api/admin/settings", {
+    const saved = await request<object>("/api/admin/settings", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -429,6 +512,16 @@ export default function Dashboard({
         grayDays: Number(data.grayDays),
       }),
     }, "Saving urgency settings…");
+    if (saved) {
+      const due = saved as { redDays: number; yellowDays: number; grayDays: number };
+      setLookups((current) => [
+        ...current.filter((item) => item.kind !== "due_threshold"),
+        { id: -1, kind: "due_threshold", value: `red:${due.redDays}`, active: true },
+        { id: -2, kind: "due_threshold", value: `yellow:${due.yellowDays}`, active: true },
+        { id: -3, kind: "due_threshold", value: `gray:${due.grayDays}`, active: true },
+      ]);
+      refreshInBackground();
+    }
   }
   async function saveDeployment(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -443,7 +536,7 @@ export default function Dashboard({
         })
       : "";
     const current = deploymentForm.deployment;
-    await request(
+    const saved = await request<Deployment>(
       current
         ? `/api/tasks/${deploymentForm.task.taskId}/deployments/${current.id}`
         : `/api/tasks/${deploymentForm.task.taskId}/deployments`,
@@ -458,6 +551,7 @@ export default function Dashboard({
       },
       current ? "Saving deployment plan…" : "Adding deployment plan…",
     );
+    if (saved) { replaceDeployment(saved); touchTask(saved.taskId, saved.updatedAt); refreshInBackground(); }
   }
   async function updateTaskStatus(task: Task, nextStatus: string) {
     const plannedDeployments = deployments.filter(
@@ -480,11 +574,12 @@ export default function Dashboard({
       }
       return;
     }
-    await request(`/api/tasks/${task.taskId}`, {
+    const saved = await request<Task>(`/api/tasks/${task.taskId}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...task, status: nextStatus }),
     }, "Updating task status…");
+    if (saved) { replaceTask(saved); refreshInBackground(); }
   }
   async function completeProduction(task: Task, deploymentId?: number) {
     setBusy(true);
@@ -499,11 +594,13 @@ export default function Dashboard({
           setCompletionChoice({ task, deployments: body.deployments }); setCompletionDeploymentId(null); return;
         }
         if (!response.ok) throw new Error(body.error || "Request failed");
-        setCompletionChoice(null); setCompletionDeploymentId(null); setActive(null); router.refresh();
+        replaceTask(body.task as Task);
+        replaceDeployment(body.deployment as Deployment);
+        setCompletionChoice(null); setCompletionDeploymentId(null); setActive(null); refreshInBackground();
       });
     } catch (error) {
       alert(error instanceof Error ? error.message : "Request failed");
-      router.refresh();
+      refreshInBackground();
     } finally {
       setBusy(false);
     }
@@ -527,15 +624,17 @@ export default function Dashboard({
         );
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Request failed");
+        replaceTask(body.task as Task);
+        if (Array.isArray(body.deployments)) body.deployments.forEach((deployment) => replaceDeployment(deployment as Deployment));
         setCancellationChoice(null);
         setCancellationScope("all");
         setCancellationDeploymentId(null);
         setActive(null);
-        router.refresh();
+        refreshInBackground();
       });
     } catch (error) {
       alert(error instanceof Error ? error.message : "Request failed");
-      router.refresh();
+      refreshInBackground();
     } finally {
       setBusy(false);
     }
@@ -548,7 +647,7 @@ export default function Dashboard({
       "en-GB",
       { day: "numeric", month: "short", year: "numeric" },
     );
-    await request(
+    const saved = await request<Deployment>(
       `/api/tasks/${deployment.taskId}/deployments/${deployment.id}`,
       {
         method: "PATCH",
@@ -561,12 +660,13 @@ export default function Dashboard({
       },
       "Updating deployment date…",
     );
+    if (saved) { replaceDeployment(saved); touchTask(saved.taskId, saved.updatedAt); refreshInBackground(); }
   }
   async function updateDeploymentResult(
     deployment: Deployment,
     result: string,
   ) {
-    await request(
+    const saved = await request<Deployment>(
       `/api/tasks/${deployment.taskId}/deployments/${deployment.id}`,
       {
         method: "PATCH",
@@ -575,6 +675,7 @@ export default function Dashboard({
       },
       "Updating deployment result…",
     );
+    if (saved) { replaceDeployment(saved); touchTask(saved.taskId, saved.updatedAt); refreshInBackground(); }
   }
   async function deleteDeployment(deployment: Deployment) {
     if (
@@ -583,17 +684,24 @@ export default function Dashboard({
       )
     )
       return;
-    await request(
+    const deleted = await request<Task>(
       `/api/tasks/${deployment.taskId}/deployments/${deployment.id}`,
       { method: "DELETE" },
       "Deleting deployment plan…",
     );
+    if (deleted) {
+      locallyDeletedDeploymentIds.current.add(deployment.id);
+      setDeployments((current) => current.filter((item) => item.id !== deployment.id));
+      replaceTask(deleted);
+      refreshInBackground();
+    }
   }
   async function deleteUser(user: User) {
     if (!confirm(`Remove access for ${user.email}?`)) return;
-    await request(`/api/admin/users?email=${encodeURIComponent(user.email)}`, {
+    const deleted = await request<object>(`/api/admin/users?email=${encodeURIComponent(user.email)}`, {
       method: "DELETE",
     }, "Removing project member…");
+    if (deleted) { setUsers((current) => current.filter((item) => item.email !== user.email)); refreshInBackground(); }
   }
   return (
     <div className="app-shell">

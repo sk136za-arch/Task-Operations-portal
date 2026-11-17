@@ -21,7 +21,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ t
   if (!before) return Response.json({ error: "Not found" }, { status: 404 });
   unwrap(await db.from("deployments").delete().eq("project_id", auth.projectId).eq("id", p.id));
   const now = new Date().toISOString();
-  unwrap(await db.from("tasks").update({ updated_at: now, updated_by: auth.principal.identity.email }).eq("project_id", auth.projectId).eq("task_id", p.taskId));
+  const updatedTask = unwrap<any>(await db.from("tasks").update({ updated_at: now, updated_by: auth.principal.identity.email }).eq("project_id", auth.projectId).eq("task_id", p.taskId).select().single());
   unwrap(await db.from("audit_logs").insert({ project_id: auth.projectId, actor_id: auth.principal.identity.userId, actor_email: auth.principal.identity.email, action: "delete", entity_type: "deployment", entity_id: p.deploymentId, before_json: JSON.stringify(before), created_at: now }));
-  return new Response(null, { status: 204 });
+  return Response.json(camelize(updatedTask));
 }

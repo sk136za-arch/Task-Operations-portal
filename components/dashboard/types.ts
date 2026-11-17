@@ -27,6 +27,7 @@ export type Deployment = {
   dateLabel: string;
   detail: string;
   result: string;
+  updatedAt: string;
 };
 
 export type Lookup = {

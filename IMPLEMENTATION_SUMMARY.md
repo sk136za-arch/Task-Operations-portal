@@ -129,3 +129,37 @@ Overdue Planned deployments remain visible as persistent red entries. Terminal T
 # Final Status
 
 Ready for migration application and browser QA.
+
+---
+
+# Task
+
+Keep dashboard mutations visibly fresh without waiting for RSC refreshes and reduce the project dashboard's Vercel/Supabase load.
+
+# Result
+
+Confirmed mutation responses now update dashboard state immediately; server refresh is a background reconciliation step. Notification feed payloads no longer include every audit snapshot, and detail data loads only when a user opens an activity.
+
+# Changes Made
+
+- Added local reconciliation for Task/deployment CRUD and terminal Done/Cancel transitions, including protection against an older server refresh overwriting a newer confirmed record.
+- Kept bulk CSV import as a full navigation after the import succeeds, avoiding a mixed partial UI for bulk changes.
+- Added a protected, no-store project-scoped activity-detail endpoint and reduced the initial audit query to notification summary fields.
+- Added migration `20261118000009_dashboard_performance.sql` for query indexes and cancellation RPC results that include all changed deployments.
+
+# Tests
+
+- `npm run build`
+- Targeted ESLint
+- `git diff --check`
+- Independent static test and review
+
+# Validation
+
+- Production build and diff check passed.
+- Targeted lint still reports pre-existing dashboard/page lint debt; no new route or type error was introduced.
+
+# Remaining Concerns
+
+- Apply migration `20261118000009_dashboard_performance.sql` before deployment.
+- Local Supabase `EXPLAIN ANALYZE` and deployed-browser latency measurement require the configured database and Vercel environment.

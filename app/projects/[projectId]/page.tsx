@@ -17,7 +17,7 @@ export default async function ProjectDashboard({ params }: { params: Promise<{ p
     unwrap(await db.from("deployments").select().eq("project_id", projectId).order("date_label")),
     unwrap(await db.from("lookup_values").select().eq("project_id", projectId).order("sort_order")),
     principal.role === "admin" ? unwrap<any[]>(await db.from("project_members").select().eq("project_id", projectId)) : [],
-    unwrap<any[]>(await db.from("audit_logs").select().eq("project_id", projectId).order("created_at", { ascending: false }).limit(100)),
+    unwrap<any[]>(await db.from("audit_logs").select("id, actor_email, action, entity_type, entity_id, created_at").eq("project_id", projectId).order("created_at", { ascending: false }).limit(100)),
     principal.role === "admin" ? unwrap(await db.from("project_access_requests").select().eq("project_id", projectId).eq("status", "pending").order("created_at", { ascending: false })) : [],
   ]);
   if (!project) redirect("/");
