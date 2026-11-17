@@ -2,7 +2,8 @@ import { getChatGPTUser } from "@/app/chatgpt-auth";
 import { getDb, unwrap } from "@/db";
 import { ADMIN_EMAIL, type Role } from "@/lib/authz";
 
-export type ProjectPrincipal = { identity: NonNullable<Awaited<ReturnType<typeof getChatGPTUser>>>; role: Role; isGlobalAdmin: boolean };
+type ActiveProject = { id: string; name: string; description: string; active: boolean; notifications_started_at?: string | null };
+export type ProjectPrincipal = { identity: NonNullable<Awaited<ReturnType<typeof getChatGPTUser>>>; role: Role; isGlobalAdmin: boolean; project: ActiveProject };
 
 export function globalAdminEmails() {
   return new Set([ADMIN_EMAIL, ...(process.env.ADMIN_EMAILS ?? "").split(",")].map((v) => v.trim().toLowerCase()).filter(Boolean));
@@ -15,16 +16,16 @@ export async function requireGlobalAdmin() {
   return { identity } as const;
 }
 
-export async function projectPrincipal(projectId: string): Promise<ProjectPrincipal | null> {
-  const identity = await getChatGPTUser();
+export async function projectPrincipal(projectId: string, knownIdentity?: NonNullable<Awaited<ReturnType<typeof getChatGPTUser>>>): Promise<ProjectPrincipal | null> {
+  const identity = knownIdentity ?? await getChatGPTUser();
   if (!identity) return null;
   const email = identity.email.toLowerCase();
-  const project = unwrap<any>(await getDb().from("projects").select("active").eq("id", projectId).maybeSingle());
+  const project = unwrap<ActiveProject | null>(await getDb().from("projects").select("id, name, description, active, notifications_started_at").eq("id", projectId).maybeSingle());
   if (!project?.active) return null;
   const isGlobalAdmin = globalAdminEmails().has(email);
-  if (isGlobalAdmin) return { identity, role: "admin", isGlobalAdmin };
+  if (isGlobalAdmin) return { identity, role: "admin", isGlobalAdmin, project };
   const member = unwrap<any>(await getDb().from("project_members").select("role, active").eq("project_id", projectId).eq("email", email).maybeSingle());
-  return member?.active ? { identity, role: member.role as Role, isGlobalAdmin } : null;
+  return member?.active ? { identity, role: member.role as Role, isGlobalAdmin, project } : null;
 }
 
 export async function requireProjectRole(projectId: string, allowed: Role[]) {

@@ -163,3 +163,11 @@ Confirmed mutation responses now update dashboard state immediately; server refr
 
 - Apply migration `20261118000009_dashboard_performance.sql` before deployment.
 - Local Supabase `EXPLAIN ANALYZE` and deployed-browser latency measurement require the configured database and Vercel environment.
+
+---
+
+# Follow-up Performance Check
+
+- Production dashboard reload on 18 Nov 2026 measured about 6.65 seconds in the authenticated browser, with no data-changing actions performed.
+- Reused the authenticated identity and already-validated project record in the dashboard route, removing a duplicate authentication lookup and duplicate `projects` query before the dashboard's parallel data load.
+- `npm run build` and `git diff --check` passed after the follow-up.
