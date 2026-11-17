@@ -190,6 +190,7 @@ export default function Dashboard({
   const locallyChangedTaskIds = useRef(new Set<string>());
   const locallyChangedDeploymentIds = useRef(new Set<number>());
   const locallyDeletedDeploymentIds = useRef(new Set<number>());
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tasks, setTasks] = useState(initialTasks);
   const [deployments, setDeployments] = useState(initialDeployments);
   const [lookups, setLookups] = useState(initialLookups);
@@ -273,7 +274,14 @@ export default function Dashboard({
   useEffect(() => { startTransition(() => setAudits(initialAudits)); }, [initialAudits]);
   useEffect(() => { startTransition(() => setAccessRequests(initialAccessRequests)); }, [initialAccessRequests]);
   useEffect(() => { startTransition(() => setReadAuditIds(new Set(notificationReadIds))); }, [notificationReadIds]);
-  const refreshInBackground = () => startTransition(() => router.refresh());
+  useEffect(() => () => { if (refreshTimer.current) clearTimeout(refreshTimer.current); }, []);
+  const refreshInBackground = () => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => {
+      refreshTimer.current = null;
+      startTransition(() => router.refresh());
+    }, 1200);
+  };
   const replaceTask = (next: Task) => {
     locallyChangedTaskIds.current.add(next.taskId);
     setTasks((current) => {
@@ -561,7 +569,12 @@ export default function Dashboard({
     );
     const normalizedStatus = nextStatus.trim().toLowerCase();
     if (normalizedStatus === "deploy prod done" && plannedDeployments.length) {
-      await completeProduction(task);
+      if (plannedDeployments.length === 1) {
+        await completeProduction(task, plannedDeployments[0].id);
+      } else {
+        setCompletionChoice({ task, deployments: plannedDeployments });
+        setCompletionDeploymentId(null);
+      }
       return;
     }
     if (/cancel/i.test(normalizedStatus) && plannedDeployments.length) {

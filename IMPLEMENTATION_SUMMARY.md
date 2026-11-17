@@ -179,3 +179,8 @@ Confirmed mutation responses now update dashboard state immediately; server refr
 - Added migration `20261118000010_fast_project_mutations.sql` that moves standard Task and deployment updates into single, revision-safe Supabase RPC transactions with audit logging.
 - The project-scoped API handlers retain existing validation and terminal deployment-transition protections while replacing sequential read/update/audit calls with one RPC request.
 - Apply this migration before deploying the matching API code.
+
+# Completion-status shortcut
+
+- `Deploy Prod Done` now opens the local plan selector directly when several Planned deployments exist, or sends the one known plan ID directly when only one exists. This removes the previous preliminary server request while the RPC still validates the selected plan transactionally.
+- Background dashboard reconciliation is now debounced for 1.2 seconds, so rapid consecutive saves coalesce into one expensive RSC refresh while confirmed local state remains visible immediately.
