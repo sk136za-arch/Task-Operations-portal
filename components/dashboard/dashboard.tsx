@@ -27,6 +27,8 @@ import { ConfigPanel } from "./configuration";
 import { TimelineBoard } from "./timeline-board";
 import { Field, Modal, SelectField } from "./dialogs";
 import { useLoading } from "@/components/loading/loading-provider";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
+import { isNotificationRead, isOwnNotification } from "@/lib/notification-state";
 
 import type { Audit, Deployment, Lookup, Principal, Task, User } from "./types";
 import {
@@ -215,7 +217,7 @@ export default function Dashboard({
   >("overview");
   const [selectedAudit, setSelectedAudit] = useState<Audit | null>(null);
   const [notificationSource, setNotificationSource] = useState<"others" | "mine">("others");
-  const [readAuditIds, setReadAuditIds] = useState(() => new Set(notificationReadIds));
+  const [readAuditIds, setReadAuditIds] = useState<Set<number>>(() => new Set());
   const [taskForm, setTaskForm] = useState<any>(null);
   const [deploymentForm, setDeploymentForm] = useState<{
     task: Task;
@@ -285,7 +287,7 @@ export default function Dashboard({
     setNotificationsLoading(true);
     setNotificationsError("");
     try {
-      const response = await fetch(`/api/projects/${projectId}/notifications`, { cache: "no-store" });
+      const response = await fetchWithTimeout(`/api/projects/${projectId}/notifications`, { cache: "no-store" });
       const body = await response.json().catch(() => ({})) as { audits?: Audit[]; notificationReadIds?: number[]; error?: string };
       if (!response.ok) throw new Error(body.error || "Unable to load notifications");
       setAudits(body.audits ?? []);
@@ -306,8 +308,8 @@ export default function Dashboard({
     setAccessError("");
     try {
       const [membersResponse, requestsResponse] = await Promise.all([
-        fetch(`/api/projects/${projectId}/members`, { cache: "no-store" }),
-        fetch(`/api/projects/${projectId}/access-requests`, { cache: "no-store" }),
+        fetchWithTimeout(`/api/projects/${projectId}/members`, { cache: "no-store" }),
+        fetchWithTimeout(`/api/projects/${projectId}/access-requests`, { cache: "no-store" }),
       ]);
       const [membersBody, requestsBody] = await Promise.all([
         membersResponse.json().catch(() => ({})) as Promise<User[] & { error?: string }>,
@@ -373,12 +375,9 @@ export default function Dashboard({
     [tasks],
   );
   const dueThresholds = useMemo(() => dueThresholdsFrom(lookups), [lookups]);
-  const notificationsStartedAtTime = notificationsStartedAt ? new Date(notificationsStartedAt).getTime() : Number.POSITIVE_INFINITY;
-  const isOwnActivity = (audit: Audit) => audit.actorEmail.trim().toLowerCase() === principal.email.trim().toLowerCase();
+  const isOwnActivity = (audit: Audit) => isOwnNotification(audit, principal.email);
   const isAuditRead = (audit: Audit) =>
-    isOwnActivity(audit) ||
-    new Date(audit.createdAt).getTime() <= notificationsStartedAtTime ||
-    readAuditIds.has(audit.id);
+    isNotificationRead(audit, principal.email, notificationsStartedAt, readAuditIds);
   const notificationAudits = audits.filter(
     (audit) =>
       (audit.entityType === "task" || audit.entityType === "deployment") &&
@@ -399,7 +398,7 @@ export default function Dashboard({
   async function openNotification(audit: Audit) {
     try {
       await runWithLoading("Loading activity details…", async () => {
-        const response = await fetch(`/api/projects/${projectId}/notifications/${audit.id}`);
+        const response = await fetchWithTimeout(`/api/projects/${projectId}/notifications/${audit.id}`);
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Unable to load notification");
         const detailedAudit = body as Audit;
@@ -413,7 +412,7 @@ export default function Dashboard({
     if (isAuditRead(audit)) return;
     setReadAuditIds((current) => new Set(current).add(audit.id));
     try {
-      const response = await fetch(`/api/projects/${projectId}/notifications/${audit.id}/read`, { method: "POST" });
+      const response = await fetchWithTimeout(`/api/projects/${projectId}/notifications/${audit.id}/read`, { method: "POST" });
       if (!response.ok) throw new Error("Unable to mark notification as read");
     } catch {
       setReadAuditIds((current) => {
@@ -488,7 +487,7 @@ export default function Dashboard({
         else if (target.pathname === "/api/admin/users") target.pathname = `/api/projects/${projectId}/members`;
         else if (target.pathname === "/api/admin/settings") target.pathname = `/api/projects/${projectId}/settings`;
         else if (target.pathname === "/api/admin/import") target.pathname = `/api/projects/${projectId}/seed-import`;
-        const r = await fetch(`${target.pathname}${target.search}`, init);
+        const r = await fetchWithTimeout(`${target.pathname}${target.search}`, init);
         const text = await r.text();
         const body = (text ? JSON.parse(text) : {}) as T & { error?: string };
         if (!r.ok) throw new Error(body.error || "Request failed");
@@ -514,7 +513,7 @@ export default function Dashboard({
       await runWithLoading(mode === "replace" ? "Replacing project data…" : "Importing CSV…", async () => {
         const data = new FormData();
         data.set("file", csvFile); data.set("mode", mode); data.set("projectId", projectId);
-        const response = await fetch("/api/import/tasks", { method: "POST", body: data });
+        const response = await fetchWithTimeout("/api/import/tasks", { method: "POST", body: data });
         const body = await response.json();
         if (!response.ok) { const details = Array.isArray(body.issues) ? `\n${body.issues.join("\n")}` : ""; throw new Error(`${body.error || "Import failed"}${details}`); }
         setCsvNotice(`${mode === "replace" ? "Replaced" : "Added"} ${body.taskCount} tasks and ${body.deploymentCount} deployment plans.`);
@@ -658,7 +657,7 @@ export default function Dashboard({
     setBusy(true);
     try {
       await runWithLoading("Completing production deployment…", async () => {
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `/api/projects/${projectId}/tasks/${task.taskId}/complete-production`,
           { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ revision: task.revision, deploymentId }) },
         );
@@ -687,7 +686,7 @@ export default function Dashboard({
     setBusy(true);
     try {
       await runWithLoading("Cancelling deployment plan…", async () => {
-        const response = await fetch(
+        const response = await fetchWithTimeout(
           `/api/projects/${projectId}/tasks/${task.taskId}/cancel-deployments`,
           {
             method: "POST",

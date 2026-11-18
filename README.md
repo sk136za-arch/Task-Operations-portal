@@ -126,12 +126,12 @@ npm run lint
    The task/deployment notification feed uses a durable database outbox. After
    migration `20261118000011_async_task_deployment_audits.sql` is applied, enable
    Supabase's **Cron** extension in Database → Extensions, then run this once in
-   the Supabase SQL Editor to process up to 100 queued audit events each minute:
+   the Supabase SQL Editor to process up to 100 queued audit events every 10 minutes:
 
    ```sql
    select cron.schedule(
      'task-ops-process-audit-outbox',
-     '* * * * *',
+     '*/10 * * * *',
      $$select public.process_project_audit_outbox(100);$$
    )
    where not exists (
@@ -139,9 +139,30 @@ npm run lint
    );
    ```
 
+   If the job already exists (for example, it was previously scheduled every
+   minute), update it explicitly rather than running the create-only statement:
+
+   ```sql
+   select cron.alter_job(jobid => job.jobid, schedule => '*/10 * * * *')
+   from cron.job as job
+   where job.jobname = 'task-ops-process-audit-outbox';
+   ```
+
    The action save remains durable even if Cron is unavailable: events wait in
    `project_audit_outbox` and are delivered once the worker runs. Notifications
    therefore appear within roughly one Cron interval rather than synchronously.
+   Use `'* * * * *'` instead if one-minute notification delivery is worth the
+   additional scheduled database work.
+
+   Check queue health periodically. `dead_lettered_at` means an audit event
+   failed five times and needs investigation; it never blocks later events:
+
+   ```sql
+   select
+     count(*) filter (where processed_at is null and dead_lettered_at is null) as pending,
+     count(*) filter (where dead_lettered_at is not null) as dead_lettered
+   from public.project_audit_outbox;
+   ```
 
 3. Configure the hosting environment with these **server-side runtime variables**:
 

@@ -260,3 +260,32 @@ Ready to deploy after applying the migration and enabling the Cron worker.
 - Removed Notifications, notification-read state, project members, and pending access requests from the initial dashboard render path.
 - Added protected, project-scoped deferred APIs for notification summaries and admin access data; Notifications preloads after first paint and Access loads only when its tab opens.
 - `npm run build` and `git diff --check` passed. Targeted lint remains blocked only by existing repository-wide lint debt in the touched legacy files.
+
+---
+
+# Reliability and test follow-up
+
+## Result
+
+The production dashboard crash is fixed in source, dashboard requests now time out safely instead of leaving the loading overlay indefinitely, and the audit outbox worker isolates failed events so one malformed event cannot block later notifications.
+
+## Changes Made
+
+- Added the staged `notificationReadIds` initialization fix in `components/dashboard/dashboard.tsx`.
+- Added `fetchWithTimeout` and applied it to Dashboard API actions, deferred notifications, and Access loads. It does not retry writes automatically because a timed-out write may already have reached the database.
+- Added `20261118000013_audit_outbox_resilience.sql`: retry/backoff metadata, a dead-letter marker after five failures, eligible-work index, and row-isolated worker execution.
+- Added the index for the existing deployment SSR sort by `(project_id, date_label)`.
+- Added Vitest and eight unit tests for timeout/abort behavior and notification read-state rules.
+- Updated the Cron documentation to match the production ten-minute schedule, include a safe existing-job update statement, and document outbox health checks.
+
+## Validation
+
+- `npm run test` passed: 8 tests in 2 files.
+- `npm run build` passed.
+- `git diff --check` and `git diff --cached --check` passed.
+- `npm run lint` remains blocked by existing repository-wide lint errors; this change did not add a new lint error category.
+
+## Remaining Concerns
+
+- The additive local Supabase migration was not applied during this pass because the elevated Docker command approval was unavailable. Apply `20261118000013_audit_outbox_resilience.sql` via the normal local/remote migration process before deployment.
+- The PostgreSQL worker still needs a disposable-fixture integration test for poison-row, dead-letter, and concurrent-worker behavior; unit tests cannot prove RPC transaction semantics.
