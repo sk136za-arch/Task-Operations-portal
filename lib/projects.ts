@@ -20,11 +20,17 @@ export async function projectPrincipal(projectId: string, knownIdentity?: NonNul
   const identity = knownIdentity ?? await getChatGPTUser();
   if (!identity) return null;
   const email = identity.email.toLowerCase();
-  const project = unwrap<ActiveProject | null>(await getDb().from("projects").select("id, name, description, active, notifications_started_at").eq("id", projectId).maybeSingle());
-  if (!project?.active) return null;
+  const db = getDb();
   const isGlobalAdmin = globalAdminEmails().has(email);
+  const projectQuery = db.from("projects").select("id, name, description, active, notifications_started_at").eq("id", projectId).maybeSingle();
+  const memberQuery = isGlobalAdmin
+    ? Promise.resolve({ data: null, error: null })
+    : db.from("project_members").select("role, active").eq("project_id", projectId).eq("email", email).maybeSingle();
+  const [projectResult, memberResult] = await Promise.all([projectQuery, memberQuery]);
+  const project = unwrap<ActiveProject | null>(projectResult);
+  if (!project?.active) return null;
   if (isGlobalAdmin) return { identity, role: "admin", isGlobalAdmin, project };
-  const member = unwrap<any>(await getDb().from("project_members").select("role, active").eq("project_id", projectId).eq("email", email).maybeSingle());
+  const member = unwrap<any>(memberResult);
   return member?.active ? { identity, role: member.role as Role, isGlobalAdmin, project } : null;
 }
 

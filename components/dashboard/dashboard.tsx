@@ -1,5 +1,5 @@
 "use client";
-import { startTransition, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity,
@@ -169,7 +169,6 @@ export default function Dashboard({
   projectId,
   signOutPath,
   projectSettings,
-  notificationReadIds,
   notificationsStartedAt,
 }: {
   tasks: Task[];
@@ -182,7 +181,6 @@ export default function Dashboard({
   projectId: string;
   signOutPath: string;
   projectSettings?: React.ReactNode;
-  notificationReadIds: number[];
   notificationsStartedAt?: string | null;
 }) {
   const router = useRouter();
@@ -197,6 +195,15 @@ export default function Dashboard({
   const [users, setUsers] = useState(initialUsers);
   const [audits, setAudits] = useState(initialAudits);
   const [accessRequests, setAccessRequests] = useState(initialAccessRequests);
+  const [accessAudits, setAccessAudits] = useState<Audit[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState("");
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessError, setAccessError] = useState("");
+  const notificationsLoaded = useRef(initialAudits.length > 0);
+  const accessLoaded = useRef(initialUsers.length > 0 || initialAccessRequests.length > 0);
+  const notificationsLoadingRef = useRef(false);
+  const accessLoadingRef = useRef(false);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const [team, setTeam] = useState("all");
@@ -270,11 +277,64 @@ export default function Dashboard({
     return next;
   })); }, [initialDeployments]);
   useEffect(() => { startTransition(() => setLookups(initialLookups)); }, [initialLookups]);
-  useEffect(() => { startTransition(() => setUsers(initialUsers)); }, [initialUsers]);
-  useEffect(() => { startTransition(() => setAudits(initialAudits)); }, [initialAudits]);
-  useEffect(() => { startTransition(() => setAccessRequests(initialAccessRequests)); }, [initialAccessRequests]);
-  useEffect(() => { startTransition(() => setReadAuditIds(new Set(notificationReadIds))); }, [notificationReadIds]);
   useEffect(() => () => { if (refreshTimer.current) clearTimeout(refreshTimer.current); }, []);
+
+  const loadNotifications = useCallback(async () => {
+    if (notificationsLoadingRef.current) return;
+    notificationsLoadingRef.current = true;
+    setNotificationsLoading(true);
+    setNotificationsError("");
+    try {
+      const response = await fetch(`/api/projects/${projectId}/notifications`, { cache: "no-store" });
+      const body = await response.json().catch(() => ({})) as { audits?: Audit[]; notificationReadIds?: number[]; error?: string };
+      if (!response.ok) throw new Error(body.error || "Unable to load notifications");
+      setAudits(body.audits ?? []);
+      setReadAuditIds(new Set(body.notificationReadIds ?? []));
+      notificationsLoaded.current = true;
+    } catch (error) {
+      setNotificationsError(error instanceof Error ? error.message : "Unable to load notifications");
+    } finally {
+      notificationsLoadingRef.current = false;
+      setNotificationsLoading(false);
+    }
+  }, [projectId]);
+
+  const loadAccess = useCallback(async () => {
+    if (accessLoadingRef.current || principal.role !== "admin") return;
+    accessLoadingRef.current = true;
+    setAccessLoading(true);
+    setAccessError("");
+    try {
+      const [membersResponse, requestsResponse] = await Promise.all([
+        fetch(`/api/projects/${projectId}/members`, { cache: "no-store" }),
+        fetch(`/api/projects/${projectId}/access-requests`, { cache: "no-store" }),
+      ]);
+      const [membersBody, requestsBody] = await Promise.all([
+        membersResponse.json().catch(() => ({})) as Promise<User[] & { error?: string }>,
+        requestsResponse.json().catch(() => ({})) as Promise<{ requests?: Array<{ id: number; email: string; displayName: string; createdAt: string }>; audits?: Audit[]; error?: string }>,
+      ]);
+      if (!membersResponse.ok) throw new Error(membersBody.error || "Unable to load project members");
+      if (!requestsResponse.ok) throw new Error(requestsBody.error || "Unable to load access requests");
+      setUsers(membersBody);
+      setAccessRequests(requestsBody.requests ?? []);
+      setAccessAudits(requestsBody.audits ?? []);
+      accessLoaded.current = true;
+    } catch (error) {
+      setAccessError(error instanceof Error ? error.message : "Unable to load access data");
+    } finally {
+      accessLoadingRef.current = false;
+      setAccessLoading(false);
+    }
+  }, [principal.role, projectId]);
+
+  useEffect(() => {
+    if (tab === "notifications" && !notificationsLoaded.current) void loadNotifications();
+    if (tab === "access" && !accessLoaded.current) void loadAccess();
+  }, [tab, loadAccess, loadNotifications]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { if (!notificationsLoaded.current) void loadNotifications(); }, 500);
+    return () => window.clearTimeout(timer);
+  }, [loadNotifications]);
   const refreshInBackground = () => {
     if (refreshTimer.current) clearTimeout(refreshTimer.current);
     refreshTimer.current = setTimeout(() => {
@@ -1123,7 +1183,11 @@ export default function Dashboard({
               <button className={notificationSource === "others" ? "active" : ""} onClick={() => setNotificationSource("others")}>Others</button>
               <button className={notificationSource === "mine" ? "active" : ""} onClick={() => setNotificationSource("mine")}>My activity</button>
             </div>
-            {notificationAudits.length ? (
+            {notificationsLoading ? (
+              <p className="empty">Loading notifications…</p>
+            ) : notificationsError ? (
+              <p className="empty">{notificationsError} <button className="secondary" onClick={() => void loadNotifications()}>Retry</button></p>
+            ) : notificationAudits.length ? (
               <div className="notification-list">
                 {notificationAudits.map((audit) => {
                   const task = auditTask(audit);
@@ -1160,7 +1224,7 @@ export default function Dashboard({
         )}
         {tab === "access" && (
           <section className="panel">
-            <div className="access-requests"><PanelTitle title={`Access requests${accessRequests.length ? ` · ${accessRequests.length}` : ""}`} subtitle="Review people who asked to join this project." />{accessRequests.length ? accessRequests.map((item) => <div className="access-request" key={item.id}><div><b>{item.displayName || item.email}</b><small>{item.email} · Viewer access</small></div><div><button className="primary" disabled={busy} onClick={() => reviewAccessRequest(item.id, "approve")}>Approve</button><button className="secondary" disabled={busy} onClick={() => reviewAccessRequest(item.id, "reject")}>Reject</button></div></div>) : <p className="form-note">No pending access requests.</p>}</div>
+            {accessLoading ? <p className="empty">Loading project access…</p> : accessError ? <p className="empty">{accessError} <button className="secondary" onClick={() => void loadAccess()}>Retry</button></p> : <><div className="access-requests"><PanelTitle title={`Access requests${accessRequests.length ? ` · ${accessRequests.length}` : ""}`} subtitle="Review people who asked to join this project." />{accessRequests.length ? accessRequests.map((item) => <div className="access-request" key={item.id}><div><b>{item.displayName || item.email}</b><small>{item.email} · Viewer access</small></div><div><button className="primary" disabled={busy} onClick={() => reviewAccessRequest(item.id, "approve")}>Approve</button><button className="secondary" disabled={busy} onClick={() => reviewAccessRequest(item.id, "reject")}>Reject</button></div></div>) : <p className="form-note">No pending access requests.</p>}</div>
             <PanelTitle
               title="Project members"
               subtitle="Manage roles and access for this project only."
@@ -1196,8 +1260,7 @@ export default function Dashboard({
             </div>
             <div className="audit">
               <h3>Recent access activity</h3>
-              {audits
-                .filter((a) => a.entityType === "member")
+              {accessAudits
                 .slice(0, 8)
                 .map((a) => (
                   <p key={a.id}>
@@ -1206,6 +1269,7 @@ export default function Dashboard({
                   </p>
                 ))}
             </div>
+            </>}
           </section>
         )}
       </main>

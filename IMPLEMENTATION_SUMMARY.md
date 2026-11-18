@@ -250,3 +250,13 @@ Task and Deployment mutations now atomically save their business change plus a d
 # Final Status
 
 Ready to deploy after applying the migration and enabling the Cron worker.
+
+---
+
+# Project-entry performance follow-up
+
+- Replaced the chooser's full-document project link with a prefetched framework `Link`.
+- Parallelized project and membership authorization queries.
+- Removed Notifications, notification-read state, project members, and pending access requests from the initial dashboard render path.
+- Added protected, project-scoped deferred APIs for notification summaries and admin access data; Notifications preloads after first paint and Access loads only when its tab opens.
+- `npm run build` and `git diff --check` passed. Targeted lint remains blocked only by existing repository-wide lint debt in the touched legacy files.

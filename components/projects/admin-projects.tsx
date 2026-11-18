@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, FolderKanban, Pencil, Search, X } from "lucide-react";
-import Link from "next/link";
 import { useLoading } from "@/components/loading/loading-provider";
 
 type Project = { id: string; name: string; description: string; active: boolean; updated_at: string };
@@ -97,9 +96,9 @@ export function AdminProjects({ projects: initialProjects, requests: initialRequ
   }
 
   return <main className="admin-projects">
-    <aside className="admin-sidebar"><div className="admin-brand"><FolderKanban /> <span>Task Ops Portal<small>Super admin</small></span></div><Link href="/">Projects</Link><Link className="active" aria-current="page" href="/admin/projects">Manage projects</Link></aside>
+    <aside className="admin-sidebar"><div className="admin-brand"><FolderKanban /> <span>Task Ops Portal<small>Super admin</small></span></div><button type="button" className="admin-nav-link" onClick={() => window.location.assign("/")}>Projects</button><span className="admin-nav-link active" aria-current="page">Manage projects</span></aside>
     <section className="admin-content">
-      <header className="admin-heading"><Link href="/">← Projects</Link><h1>Manage projects</h1><p>Review requests and maintain your workspace directory.</p></header>
+      <header className="admin-heading"><button type="button" className="admin-back-link" onClick={() => window.location.assign("/")}>← Projects</button><h1>Manage projects</h1><p>Review requests and maintain your workspace directory.</p></header>
       <section className="pending-panel" aria-labelledby="pending-title"><div className="panel-title"><div><h2 id="pending-title">Pending approval <b>{pendingRequests.length}</b></h2><p>Project requests awaiting your decision.</p></div></div>
         {error && <p className="admin-feedback error" role="alert">{error}</p>}
         <div className="pending-grid">{pendingRequests.map((request) => <article key={request.id} className="pending-card"><small>New project request</small><h3>{request.name}</h3><p>{request.description || "No description provided."}</p><div className="requester">{request.requester_name}<span>{request.requester_email}</span></div><footer><button type="button" className="approve" disabled={busyRequest !== null} onClick={() => review(request.id, "approve")}><Check /> {busyRequest === request.id ? "Reviewing…" : "Approve"}</button><button type="button" className="reject" disabled={busyRequest !== null} onClick={() => review(request.id, "reject")}><X /> Reject</button></footer></article>)}{!pendingRequests.length && <p className="empty-state">No pending project requests.</p>}</div>
