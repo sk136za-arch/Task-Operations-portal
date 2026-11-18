@@ -18,10 +18,11 @@ export async function POST(request: Request) {
   if (!parsed.success) return Response.json({ error: "Invalid task", issues: parsed.error.flatten() }, { status: 400 });
   if (parsed.data.startDate && parsed.data.endDate && parsed.data.endDate < parsed.data.startDate)
     return Response.json({ error: "End date must be on or after start date" }, { status: 400 });
-  const db = getDb(), now = new Date().toISOString(), temporaryId = `AUTO-${crypto.randomUUID()}`;
-  const inserted = unwrap<any>(await db.from("tasks").insert({ project_id: auth.projectId, task_id: temporaryId, environment: parsed.data.environment, team: parsed.data.team, service: parsed.data.service, title: parsed.data.title, start_date: parsed.data.startDate, end_date: parsed.data.endDate, uat_detail: parsed.data.uatDetail, production_detail: parsed.data.productionDetail, status: parsed.data.status, remark: parsed.data.remark, revision: 1, created_at: now, updated_at: now, updated_by: auth.principal.identity.email }).select().single());
-  const taskId = `BLS-${String(inserted.id).padStart(2, "0")}`;
-  const created = unwrap<any>(await db.from("tasks").update({ task_id: taskId }).eq("id", inserted.id).eq("project_id", auth.projectId).select().single());
-  unwrap(await db.from("audit_logs").insert({ project_id: auth.projectId, actor_id: auth.principal.identity.userId, actor_email: auth.principal.identity.email, action: "create", entity_type: "task", entity_id: taskId, after_json: JSON.stringify(created), created_at: now }));
+  const created = unwrap<any>(await getDb().rpc("create_project_task", {
+    p_project_id: auth.projectId,
+    p_task: parsed.data,
+    p_actor_id: auth.principal.identity.userId,
+    p_actor_email: auth.principal.identity.email,
+  }));
   return Response.json(camelize(created), { status: 201 });
 }

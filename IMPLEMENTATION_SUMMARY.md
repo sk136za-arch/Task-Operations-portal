@@ -184,3 +184,69 @@ Confirmed mutation responses now update dashboard state immediately; server refr
 
 - `Deploy Prod Done` now opens the local plan selector directly when several Planned deployments exist, or sends the one known plan ID directly when only one exists. This removes the previous preliminary server request while the RPC still validates the selected plan transactionally.
 - Background dashboard reconciliation is now debounced for 1.2 seconds, so rapid consecutive saves coalesce into one expensive RSC refresh while confirmed local state remains visible immediately.
+
+---
+
+# Task
+
+Move Task and Deployment notification auditing off the save critical path without losing audit events.
+
+# Result
+
+Task and Deployment mutations now atomically save their business change plus a durable outbox event. A bounded database worker materializes queued events into `audit_logs` later, so the Notifications feed is eventually consistent while edits no longer wait for the audit-log write.
+
+# Implementation Plan
+
+- Add a project-scoped, durable outbox with an idempotency link to `audit_logs`.
+- Move Task/Deployment create, update, delete, Done, and Cancel audit generation inside their existing or new transactional RPCs.
+- Process queued events in a bounded, concurrent-safe worker and document the Supabase Cron schedule.
+
+# Changes Made
+
+- Added `20261118000011_async_task_deployment_audits.sql` with `project_audit_outbox`, a partial pending index, `audit_logs.outbox_id`, and a unique idempotency index. `20261118000012_harden_audit_outbox_conflicts.sql` upgrades already-migrated stacks with the narrowly scoped conflict handler.
+- Added transactional RPCs for Task creation, Deployment creation, and Deployment deletion; their API routes no longer perform sequential write/audit requests.
+- Replaced synchronous Task/Deployment audit inserts in normal edits and Done/Cancel transitions with an outbox enqueue in the same database transaction.
+- Added `process_project_audit_outbox(p_limit)` using `FOR UPDATE SKIP LOCKED` and a scoped `outbox_id` conflict arbiter, so concurrent/retried workers cannot duplicate or silently discard audit events.
+- Documented the one-time Supabase Cron schedule in `README.md`; it runs the bounded worker every minute after the Cron extension is enabled.
+
+# Architecture Decisions
+
+- The scheduler is configured separately from the schema migration so production migration does not fail when the optional `pg_cron` extension has not yet been enabled.
+- Outbox events retain the original action timestamp when materialized, preserving notification order.
+- If the worker is down, business writes still succeed and audit events remain pending rather than being lost. New notifications can therefore appear up to one Cron interval later.
+
+# Tests
+
+- `npx supabase@latest db push --local`
+- Read-only local verification of the outbox table and worker/create/delete RPC registrations
+- `npm run build`
+- `npm run lint`
+- `git diff --check`
+- Independent migration/concurrency review
+
+# Validation
+
+- Local Supabase applied migrations `20261118000010_fast_project_mutations.sql`, `20261118000011_async_task_deployment_audits.sql`, and `20261118000012_harden_audit_outbox_conflicts.sql` successfully.
+- Production build and diff check passed.
+- Repository lint still fails on existing repository-wide `no-explicit-any`, link, and render-purity issues; the changed routes retain the repository's existing `any` style but introduced no lint category beyond it.
+- The local stack was not reset or seeded, so no user task/deployment records were modified for worker delivery testing.
+
+# Review Findings
+
+- Independent review identified that a broad `ON CONFLICT DO NOTHING` could mask an unrelated future unique violation and incorrectly mark an event delivered. It was narrowed to the outbox idempotency index before completion.
+
+# Remaining Concerns
+
+- Enable Supabase Cron and run the documented `cron.schedule` statement in each environment after applying migrations `20261118000011_async_task_deployment_audits.sql` and `20261118000012_harden_audit_outbox_conflicts.sql`; until then events accumulate safely in `project_audit_outbox` and Notifications will not receive new activity.
+- Local integration delivery tests require disposable task/deployment fixtures; they were not run against existing local user data.
+
+# Files Changed
+
+- `supabase/migrations/20261118000011_async_task_deployment_audits.sql`
+- `supabase/migrations/20261118000012_harden_audit_outbox_conflicts.sql`
+- Task and Deployment API routes
+- `README.md`
+
+# Final Status
+
+Ready to deploy after applying the migration and enabling the Cron worker.

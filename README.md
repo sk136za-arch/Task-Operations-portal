@@ -123,6 +123,26 @@ npm run lint
    npx supabase@latest db push --remote
    ```
 
+   The task/deployment notification feed uses a durable database outbox. After
+   migration `20261118000011_async_task_deployment_audits.sql` is applied, enable
+   Supabase's **Cron** extension in Database → Extensions, then run this once in
+   the Supabase SQL Editor to process up to 100 queued audit events each minute:
+
+   ```sql
+   select cron.schedule(
+     'task-ops-process-audit-outbox',
+     '* * * * *',
+     $$select public.process_project_audit_outbox(100);$$
+   )
+   where not exists (
+     select 1 from cron.job where jobname = 'task-ops-process-audit-outbox'
+   );
+   ```
+
+   The action save remains durable even if Cron is unavailable: events wait in
+   `project_audit_outbox` and are delivered once the worker runs. Notifications
+   therefore appear within roughly one Cron interval rather than synchronously.
+
 3. Configure the hosting environment with these **server-side runtime variables**:
 
    ```env
